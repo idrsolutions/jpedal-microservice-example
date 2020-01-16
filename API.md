@@ -117,7 +117,6 @@ Check the status of a conversion.
 ```
 {
     "state": [String], * Will be "queued", "downloading", "processing", "processed" or "error"
-    "previewUrl": [String], * Only when state is processed
     "downloadUrl": [String], * Only when state is processed
     "error": [String] * Only when state is error
     "errorCode" [integer] * Only on internal conversion error. See Internal error codes below
@@ -150,19 +149,5 @@ The converted output is available as a .zip archive at:
 **Example request:**
 
 ```GET https://[URL]/output/[uuid]/[filename].zip```
-
-___
-
-### View
-
-Results of the conversion are viewable at:
-
-**URL:** ```/output/[uuid]/[filename]/index.html```
-
-**Method:** GET
-
-**Example request:**
-
-```GET https://[URL]/output/[uuid]/[filename]/index.html```
 
 ___

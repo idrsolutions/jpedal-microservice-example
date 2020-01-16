@@ -1,6 +1,6 @@
 # JPedal Microservice Example #
 
-IDRsolutions' JPedal Microservice Example is an open source project that allows you to convert PDF to HTML5 or SVG by running JPedal as a web service in the cloud or on-premise. 
+IDRsolutions' JPedal Microservice Example is an open source project that allows you to convert PDF files to Image formats (bmp, jpg, jpeg2000, tif, png) by running JPedal as a web service in the cloud or on-premise. 
 
 **Please note that JPedal is paid-for, commercial software - however you can use the trial version for free. Just rename the trial .jar to "jpedal.jar".**
 
@@ -42,23 +42,7 @@ This will generate the jpedal.war file inside the /target directory.
 
 ### Deployment: ###
 
-See our [application server tutorials](https://support.idrsolutions.com/hc/en-us/sections/360000444652-Deploy-BuildVu-to-an-app-server) for instructions on deployment.
-
-Tutorials for cloud platforms coming soon... 
-
-### docker-compose deployment: ###
-
-```
-docker-compose up
-```
-
-Visiting `localhost:8080` will bring you to the Tomcat page. 
-Click "Manager App" and log in with the following credentials: User - admin, Password - admin123.
-These credentials can be changed in ./lib/tomcat-users.xml in this repository prior to starting the container.
-
-In the list of applications, you will see the "/microservice-example" row at the bottom. In the "Commands" column, click "Start" if it is not already selected.
-
-Upon first conversion, the output may not be visible. To fix this, stop the container and restart it again using `docker-compose up` as described previously.
+Tutorials for application servers and cloud platforms coming soon... 
 
 -----
 
@@ -68,7 +52,7 @@ You can interact with the JPedal Microservice Example using the REST API.
 
 A complete list of raw requests that can be used can be found [here](/API.md).
 
-For specific languages, see our tutorials on how to [run JPedal from other languages](https://support.idrsolutions.com/hc/en-us/sections/360000451031-Run-JPedal-from-other-languages).
+For specific languages, tutorials coming soon...
 
 -----
 
