@@ -73,7 +73,7 @@ public class JPedalPdf2ImageServlet extends BaseServlet {
                            File inputFile, File outputDir, String contextUrl) {
 
         final String[] settings = params.get("settings");
-        final String[] formatInput = params.get("format");
+        final String[] formatInput = params.get("outpuFormat");
         final String format;
         if (formatInput != null && formatInput.length > 0) {
             format = formatInput[0];

@@ -21,6 +21,7 @@ See HTTP and POST params below for list of parameters.
 * **"input":** the type of input for the server to handle.
 * **"url":** the url for the server to handle; specified with {"input": "download"}.
 * **"file":** the file for the server to handle; specified with {"input": "upload"}.
+* **"outputFormat":** the format (bmp, png, jpg, jpx, tif) to convert the document to.
 * **"callbackUrl":** the url to have a callback request sent to when the conversion has finished.
 
 **Example request:**
@@ -45,6 +46,10 @@ upload
     Content-Type: application/pdf
     [Content of example.pdf]
 
+--foo_boundary
+Content-Disposition: form-data; name="outputFormat"
+
+png
 foo_boundary--
 ```
 
@@ -55,7 +60,7 @@ POST / HTTP/1.1
 Content-Type: application/x-www-form-urlencoded;
 Content-Length: 54
 
-input=download&url=http://your.domain/path/to/file.pdf
+input=download&url=http://your.domain/path/to/file.pdf&outputFormat=png
 ```
 
 **Success Response(s):**
