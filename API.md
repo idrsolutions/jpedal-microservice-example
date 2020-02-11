@@ -21,7 +21,7 @@ See HTTP and POST params below for list of parameters.
 * **"input":** the type of input for the server to handle.
 * **"url":** the url for the server to handle; specified with {"input": "download"}.
 * **"file":** the file for the server to handle; specified with {"input": "upload"}.
-* **"outputFormat":** the format (bmp, png, jpg, jpx, tif) to convert the document to.
+* **"settings":** string containing various key:value pairs divided by a semicolon.
 * **"callbackUrl":** the url to have a callback request sent to when the conversion has finished.
 
 **Example request:**

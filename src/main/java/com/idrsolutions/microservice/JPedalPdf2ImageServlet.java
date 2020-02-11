@@ -73,14 +73,8 @@ public class JPedalPdf2ImageServlet extends BaseServlet {
                            File inputFile, File outputDir, String contextUrl) {
 
         final String[] settings = params.get("settings");
-        final String[] formatInput = params.get("outpuFormat");
-        final String format;
-        if (formatInput != null && formatInput.length > 0) {
-            format = formatInput[0];
-        } else {
-            format = "png";
-        }
         final String[] conversionParams = settings != null ? getConversionParams(settings[0]) : null;
+
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
         final String fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
@@ -121,32 +115,35 @@ public class JPedalPdf2ImageServlet extends BaseServlet {
                     throw new Exception("Invalid length of String arguments");
                 }
             }
-            
+
+            final String extract = paramMap.getOrDefault("extract", "images");
+            final String format = paramMap.getOrDefault("outputFormat", "png");
             final Encoder encoder = getEncoder(format);
-            
-            if (encoder != null) {
-                final ConvertPagesToImages convert = new ConvertPagesToImages(userPdfFilePath);
-                if (convert.openPDFFile()) {
-                    for (int page = 1; page <= convert.getPageCount(); page++) {
-                        BufferedImage bi = convert.getPageAsImage(page);
-                        encoder.write(bi, new FileOutputStream(new File(outputDirStr + "/" + fileNameWithoutExt + "/" + page + "." + format)));
+
+            if (extract.equalsIgnoreCase("images")) {
+                if (encoder != null) {
+                    final ConvertPagesToImages convert = new ConvertPagesToImages(userPdfFilePath);
+                    if (convert.openPDFFile()) {
+                        for (int page = 1; page <= convert.getPageCount(); page++) {
+                            BufferedImage bi = convert.getPageAsImage(page);
+                            encoder.write(bi, new FileOutputStream(new File(outputDirStr + "/" + fileNameWithoutExt + "/" + page + "." + format)));
+                        }
                     }
+                    convert.closePDFfile();
+
+                    ZipHelper.zipFolder(outputDirStr + "/" + fileNameWithoutExt,
+                            outputDirStr + "/" + fileNameWithoutExt + ".zip");
+
+                    final String outputPathInDocroot = individual.getUuid() + "/" + fileNameWithoutExt;
+                    individual.setValue("downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
+
+                    individual.setState("processed");
+                } else {
+                    throw new Exception("Invalid image format specified");
                 }
-                convert.closePDFfile();
-
-                ZipHelper.zipFolder(outputDirStr + "/" + fileNameWithoutExt,
-                                    outputDirStr + "/" + fileNameWithoutExt + ".zip");
-
-                final String outputPathInDocroot = individual.getUuid() + "/" + fileNameWithoutExt;
-
-                individual.setValue("previewUrl", contextUrl + "/output/" + outputPathInDocroot + "/index.html");
-                individual.setValue("downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
-
-                individual.setState("processed");
             } else {
-                throw new Exception("Invalid image format specified");
+                throw new Exception("Invalid extraction type specified");
             }
-
         } catch (final Exception ex) {
             LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
             individual.setState("error");
