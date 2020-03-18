@@ -1,6 +1,6 @@
 # JPedal Microservice Example #
 
-IDRsolutions' JPedal Microservice Example is an open source project that allows you to convert PDF files to Image formats (bmp, jpg, jpeg2000, tif, png) by running JPedal as a web service in the cloud or on-premise. 
+IDRsolutions' JPedal Microservice Example is an open source project that allows you to extract content from a PDF by running JPedal as a web service in the cloud or on-premise.
 
 **Please note that JPedal is paid-for, commercial software - however you can use the trial version for free. Just rename the trial .jar to "jpedal.jar".**
 
@@ -15,11 +15,11 @@ IDRsolutions' JPedal Microservice Example is an open source project that allows 
 
 ### Trial Version: ###
 
-If you do not have a full verison of JPedal you can get the trial version from [here](https://www.idrsolutions.com/jpedal/trial-download/). 
+If you do not have a full verison of JPedal you can get the trial version from [here](https://www.idrsolutions.com/jpedal/trial-download/).
 
 ### Accessing The Microservice: ###
 
-The microservice can be access via a REST API, you can create your own client or API calls or use one of our premade examples in a collection of different languages.
+The microservice can be accessed via a REST API, you can create your own client or API calls or use one of our premade examples in a collection of different languages.
 These clients can be found at the following link.
 https://github.com/idrsolutions/
 
@@ -42,17 +42,48 @@ This will generate the jpedal.war file inside the /target directory.
 
 ### Deployment: ###
 
-Tutorials for application servers and cloud platforms coming soon... 
+Tutorials for application servers and cloud platforms coming soon...
 
 -----
 
-### Usage: ###
+## Usage: ##
 
 You can interact with the JPedal Microservice Example using the REST API.
-
 A complete list of raw requests that can be used can be found [here](/API.md).
 
-For specific languages, tutorials coming soon...
+In order to perform an extraction you need to specify what you wish to extract using the settings value.
+The following operations are currently available using the specified values.
+
+## Convert Pages To Images ##
+Convert each page of the document to an image at a given scaling (where 1.0 is 100%) in the specified image format.
+### Settings ###
+*Required*
+**mode** : convertToImages
+**format** : [png|bmp|tif|jpg|jpx]
+
+*Optional*
+**scaling** : 1.0
+
+*Example*
+mode:convertToImages;format:png;scalinh:2.0
+
+### Extract Text ###
+Extract the text from each page of a document. If the document contains [structured content](https://support.idrsolutions.com/hc/en-us/articles/360030091571) then this is extracted. If the content is unstructured the text is extracted by working down the page from left to right.
+### Settings ###
+*Required*
+**mode** : extractText
+
+*Example*
+mode:extractText
+
+### Extract Word List ###
+Extract the text from each page of a document as a list of words including the page coordinates for each word. The coordinates are in the order of Left, Top, Right, Bottom.
+### Settings ###
+*Required*
+**mode** : extractWordlist
+
+*Example*
+mode:extractWordlist
 
 -----
 
