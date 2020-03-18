@@ -65,7 +65,7 @@ Convert each page of the document to an image at a given scaling (where 1.0 is 1
 **scaling** : 1.0
 
 *Example*
-mode:convertToImages;format:png;scalinh:2.0
+mode:convertToImages;format:png;scaling:2.0
 
 ### Extract Text ###
 Extract the text from each page of a document. If the document contains [structured content](https://support.idrsolutions.com/hc/en-us/articles/360030091571) then this is extracted. If the content is unstructured the text is extracted by working down the page from left to right.
