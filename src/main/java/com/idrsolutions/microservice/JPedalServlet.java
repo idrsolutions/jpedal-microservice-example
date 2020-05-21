@@ -21,27 +21,24 @@
 package com.idrsolutions.microservice;
 
 import com.idrsolutions.image.utility.SupportedFormats;
+import com.idrsolutions.microservice.utils.SettingsValidator;
 import com.idrsolutions.microservice.utils.ZipHelper;
 import org.jpedal.examples.images.ConvertPagesToImages;
 import org.jpedal.examples.text.ExtractStructuredText;
 import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
-import org.jpedal.utils.StringUtils;
 import org.w3c.dom.Document;
 
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Stream;
 
 /**
  * Provides an API to use JPedal on its own dedicated app server. See the API
@@ -53,12 +50,19 @@ import java.util.stream.Stream;
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
 
-    private enum MODES {
+    private enum Mode {
         convertToImages, extractText, extractWordlist
     }
+
+    private static final String[] validEncoderFormats;
+    static {
+        final String[][] encoderFormats = SupportedFormats.getSupportedImageEncoders();
+        validEncoderFormats = Arrays.stream(encoderFormats).flatMap(Arrays::stream).toArray(String[]::new);
+    }
+
     private static final Logger LOG = Logger.getLogger(JPedalServlet.class.getName());
     private static final String fileSeparator = System.getProperty("file.separator");
-    private static final char htmlPathSeparator = '/';
+
     /**
      * Converts given pdf file or office document to images using JPedal.
      * <p>
@@ -103,14 +107,6 @@ public class JPedalServlet extends BaseServlet {
             userPdfFilePath = inputDir + fileSeparator + fileName;
         }
 
-        try {
-            validateSettings(conversionParams);
-        } catch(IllegalArgumentException ex) {
-            LOG.log(Level.SEVERE, "Provided settings are not correct", ex);
-            individual.setState("error");
-            return;
-        }
-
         //Makes the directory for the output file
         new File(outputDirStr + fileSeparator + fileNameWithoutExt).mkdirs();
 
@@ -121,7 +117,7 @@ public class JPedalServlet extends BaseServlet {
             final HashMap<String, String> paramMap = new HashMap<>();
             if (conversionParams != null) { //handle string based parameters
                 if (conversionParams.length % 2 == 0) {
-                    for (int z = 0; z < conversionParams.length; z = z + 2) {
+                    for (int z = 0; z < conversionParams.length; z += 2) {
                         paramMap.put(conversionParams[z], conversionParams[z + 1]);
                     }
                 } else {
@@ -129,46 +125,22 @@ public class JPedalServlet extends BaseServlet {
                 }
             }
 
-            MODES mode = MODES.valueOf(paramMap.get("mode"));
-            switch(mode) {
-                case convertToImages:
-                    ConvertPagesToImages.writeAllPagesAsImagesToDir(
-                            userPdfFilePath,
-                            outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
-                            paramMap.get("format"),
-                            Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
-                    break;
-                case extractText:
-                    ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
-                    if (checkForStructure.openPDFFile()) {
-                        Document content = checkForStructure.getStructuredTextContent();
-                        if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
-                            ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
-                                    userPdfFilePath,
-                                    outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
-                        } else {
-                            ExtractTextInRectangle.writeAllTextToDir(
-                                    userPdfFilePath,
-                                    outputDirStr + fileSeparator,
-                                    -1);
-                        }
-                    }
-                    break;
-                case extractWordlist:
-                    ExtractTextAsWordlist.writeAllWordlistsToDir(
-                            userPdfFilePath,
-                            outputDirStr + fileSeparator,
-                            -1);
-                    break;
-                default:
-                    throw new Exception("Invalid extraction type specified");
+            final Mode mode;
+            try {
+                mode = Mode.valueOf(paramMap.remove("mode"));
+            } catch (final IllegalArgumentException | NullPointerException e) {
+                throw new Exception("Required setting \"mode\" is missing or has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
             }
+
+            validateSettings(paramMap, mode);
+
+            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, paramMap);
 
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
 
-            final String outputPathInDocroot = individual.getUuid() + htmlPathSeparator + fileNameWithoutExt;
-            individual.setValue("downloadUrl", contextUrl + htmlPathSeparator +"output" + htmlPathSeparator + outputPathInDocroot + ".zip");
+            final String outputPathInDocroot = individual.getUuid() + '/' + fileNameWithoutExt;
+            individual.setValue("downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
 
             individual.setState("processed");
 
@@ -178,103 +150,54 @@ public class JPedalServlet extends BaseServlet {
         }
     }
 
-    private void validateSettings(String[] settings) throws IllegalArgumentException {
+    private static void validateSettings(final Map<String, String> paramMap, final Mode mode) throws Exception {
+        final SettingsValidator settingsValidator = new SettingsValidator(paramMap);
 
-        final StringBuilder errorMessage = new StringBuilder();
-
-        if (settings != null) {
-            final HashMap<String, String> paramMap = new HashMap<>();
-            for (int z = 0; z < settings.length; z = z + 2) {
-                paramMap.put(settings[z], settings[z + 1]);
-            }
-
-            final String modeMessage = checkStringSetting(paramMap, "mode", Stream.of(MODES.values()).map(MODES::name).toArray(String[]::new), true);
-            if (modeMessage.length() == 0) {
-                MODES mode = MODES.valueOf(paramMap.get("mode"));
-                paramMap.remove("mode");
-                switch (mode) {
-                    case convertToImages: {
-                            final String[][] encoderFormats = SupportedFormats.getSupportedImageEncoders();
-                            ArrayList<String> fullList = new ArrayList<>();
-                            for (String[] exts : encoderFormats) {
-                                fullList.addAll(Arrays.asList(exts));
-                            }
-                            errorMessage.append(checkStringSetting(paramMap, "format", fullList.toArray(new String[0]), true));
-                            paramMap.remove("format");
-                            errorMessage.append(checkFloatSetting(paramMap, "scaling", new float[]{0.1f, 10}, false));
-                            paramMap.remove("scaling");
-                        }
-                        break;
-                    case extractText:
-                    case extractWordlist:
-                        break;
-                }
-
-                if (paramMap.size() > 0) {
-                    errorMessage.append("The following settings were not recognised.\n");
-                    final Set<String> keys = paramMap.keySet();
-                    for (String key : keys) {
-                        errorMessage.append("    ").append(key).append('\n');
-                    }
-                }
-
-            } else {
-                errorMessage.append(modeMessage);
-            }
-        } else {
-            errorMessage.append("Settings value required to specify how the file will be processed.\n");
+        if (mode == Mode.convertToImages) {
+            settingsValidator.requireString("format", validEncoderFormats);
+            settingsValidator.optionalFloat("scaling", new float[]{0.1f, 10});
         }
 
-        if (errorMessage.length() > 0) {
-            throw new IllegalArgumentException(errorMessage.toString());
+        if (!settingsValidator.validates()) {
+            throw new Exception(settingsValidator.getMessage());
         }
     }
 
-    private static String checkStringSetting(final HashMap<String, String> paramMap, final String setting, final String[] values, final boolean required) {
-        final StringBuilder errorMessage = new StringBuilder();
-
-        if (paramMap.containsKey(setting)) {
-            //check valid
-            final String value = paramMap.get(setting);
-            if (!Arrays.asList(values).contains(value)) {
-                if (required) {
-                    errorMessage.append("Required ");
-                } else {
-                    errorMessage.append("Optional ");
-                }
-                errorMessage.append("setting \"").append(setting).append("\" has incorrect value. Valid options are ").append(Arrays.toString(values)).append('\n');
-            }
-        } else {
-            if (required) {
-                errorMessage.append("Required setting \"").append(setting).append("\" missing.\n");
-            }
-        }
-        return errorMessage.toString();
-    }
-
-    private static String checkFloatSetting(final HashMap<String, String> paramMap, final String setting, final float[] range, final boolean required) {
-        final StringBuilder errorMessage = new StringBuilder();
-
-        if (paramMap.containsKey(setting)) {
-            //check valid
-            final String value = paramMap.get(setting);
-            if (StringUtils.isNumber(value)) {
-                final float fValue = Float.parseFloat(value);
-                if (fValue < range[0] && range[1] < fValue) {
-                    if (required) {
-                        errorMessage.append("Required ");
+    private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
+                                   final String fileNameWithoutExt, final Map<String, String> paramMap) throws Exception {
+        switch (mode) {
+            case convertToImages:
+                ConvertPagesToImages.writeAllPagesAsImagesToDir(
+                        userPdfFilePath,
+                        outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
+                        paramMap.get("format"),
+                        Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
+                break;
+            case extractText:
+                ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
+                if (checkForStructure.openPDFFile()) {
+                    Document content = checkForStructure.getStructuredTextContent();
+                    if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
+                        ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
+                                userPdfFilePath,
+                                outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
                     } else {
-                        errorMessage.append("Optional ");
+                        ExtractTextInRectangle.writeAllTextToDir(
+                                userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                -1);
                     }
-                    errorMessage.append("setting \"").append(setting).append("\" has incorrect value. Valid values are between ").append(range[0]).append(" and ").append(range[1]).append(".\n");
                 }
-            }
-        } else {
-            if (required) {
-                errorMessage.append("Required setting \"").append(setting).append("\" missing.\n");
-            }
+                break;
+            case extractWordlist:
+                ExtractTextAsWordlist.writeAllWordlistsToDir(
+                        userPdfFilePath,
+                        outputDirStr + fileSeparator,
+                        -1);
+                break;
+            default:
+                throw new Exception("Unrecognised mode specified: " + mode.name());
         }
-        return errorMessage.toString();
     }
 
     /**
