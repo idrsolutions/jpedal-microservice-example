@@ -129,10 +129,8 @@ public class JPedalServlet extends BaseServlet {
             try {
                 mode = Mode.valueOf(paramMap.remove("mode"));
             } catch (final IllegalArgumentException | NullPointerException e) {
-                throw new Exception("Required setting \"mode\" is missing or has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
+                throw new Exception("Required setting \"mode\" has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
             }
-
-            validateSettings(paramMap, mode);
 
             convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, paramMap);
 
@@ -150,17 +148,17 @@ public class JPedalServlet extends BaseServlet {
         }
     }
 
-    private static void validateSettings(final Map<String, String> paramMap, final Mode mode) throws Exception {
-        final SettingsValidator settingsValidator = new SettingsValidator(paramMap);
+    @Override
+    protected SettingsValidator validateSettings(final String[] conversionParams) {
+        final SettingsValidator settingsValidator = new SettingsValidator(conversionParams);
 
-        if (mode == Mode.convertToImages) {
-            settingsValidator.requireString("format", validEncoderFormats);
-            settingsValidator.optionalFloat("scaling", new float[]{0.1f, 10});
+        final String mode = settingsValidator.validateString("mode", new String[] {"convertToImages"}, true);
+        if (mode.equals("convertToImages")) {
+            settingsValidator.validateString("format", validEncoderFormats, true);
+            settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
         }
 
-        if (!settingsValidator.validates()) {
-            throw new Exception(settingsValidator.getMessage());
-        }
+        return settingsValidator;
     }
 
     private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
