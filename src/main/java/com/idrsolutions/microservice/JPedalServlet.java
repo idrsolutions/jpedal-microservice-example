@@ -150,7 +150,9 @@ public class JPedalServlet extends BaseServlet {
     }
 
     @Override
-    protected SettingsValidator validateSettings(final String[] conversionParams) {
+    protected SettingsValidator validateSettings(final String settings) {
+        final String[] conversionParams = settings != null ? getConversionParams(settings) : null;
+
         final SettingsValidator settingsValidator = new SettingsValidator(conversionParams);
 
         final String mode = settingsValidator.validateString("mode", validModes, true);
