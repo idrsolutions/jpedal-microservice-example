@@ -54,6 +54,7 @@ public class JPedalServlet extends BaseServlet {
         convertToImages, extractText, extractWordlist
     }
 
+    private static final String[] validModes = Arrays.stream(Mode.values()).map(Enum::name).toArray(String[]::new);
     private static final String[] validEncoderFormats;
     static {
         final String[][] encoderFormats = SupportedFormats.getSupportedImageEncoders();
@@ -152,8 +153,8 @@ public class JPedalServlet extends BaseServlet {
     protected SettingsValidator validateSettings(final String[] conversionParams) {
         final SettingsValidator settingsValidator = new SettingsValidator(conversionParams);
 
-        final String mode = settingsValidator.validateString("mode", new String[] {"convertToImages"}, true);
-        if (mode.equals("convertToImages")) {
+        final String mode = settingsValidator.validateString("mode", validModes, true);
+        if (mode.equals(Mode.convertToImages.name())) {
             settingsValidator.validateString("format", validEncoderFormats, true);
             settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
         }
