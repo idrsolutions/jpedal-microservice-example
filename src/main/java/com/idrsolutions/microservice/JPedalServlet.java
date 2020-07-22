@@ -51,7 +51,7 @@ import java.util.logging.Logger;
 public class JPedalServlet extends BaseServlet {
 
     private enum Mode {
-        convertToImages, extractText, extractWordlist
+        convertToImages, extractText, extractStructuredText, extractWordlist
     }
 
     private static final String[] validModes = Arrays.stream(Mode.values()).map(Enum::name).toArray(String[]::new);
@@ -174,7 +174,7 @@ public class JPedalServlet extends BaseServlet {
                         paramMap.get("format"),
                         Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
                 break;
-            case extractText:
+            case extractStructuredText:
                 ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
                 if (checkForStructure.openPDFFile()) {
                     Document content = checkForStructure.getStructuredTextContent();
@@ -183,12 +183,18 @@ public class JPedalServlet extends BaseServlet {
                                 userPdfFilePath,
                                 outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
                     } else {
-                        ExtractTextInRectangle.writeAllTextToDir(
-                                userPdfFilePath,
-                                outputDirStr + fileSeparator,
-                                -1);
+                        throw new Exception("File contains no structured content to extract.");
                     }
+                } else {
+                    throw new Exception("Unable to open specified file");
                 }
+
+                break;
+            case extractText:
+                ExtractTextInRectangle.writeAllTextToDir(
+                        userPdfFilePath,
+                        outputDirStr + fileSeparator,
+                        -1);
                 break;
             case extractWordlist:
                 ExtractTextAsWordlist.writeAllWordlistsToDir(
