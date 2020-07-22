@@ -44,6 +44,11 @@ This will generate the jpedal.war file inside the /target directory.
 
 Tutorials for application servers and cloud platforms coming soon...
 
+### docker-compose deployment: ###
+
+We provide a docker image and information on how to deploy it [here](https://github.com/idrsolutions/jpedal-docker).
+
+
 -----
 
 ## Usage: ##
