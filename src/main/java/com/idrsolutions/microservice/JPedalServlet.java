@@ -51,7 +51,7 @@ import java.util.logging.Logger;
 public class JPedalServlet extends BaseServlet {
 
     private enum Mode {
-        convertToImages, extractText, extractStructuredText, extractWordlist
+        convertToImages, extractText
     }
 
     private static final String[] validModes = Arrays.stream(Mode.values()).map(Enum::name).toArray(String[]::new);
@@ -155,9 +155,16 @@ public class JPedalServlet extends BaseServlet {
         final SettingsValidator settingsValidator = new SettingsValidator(conversionParams);
 
         final String mode = settingsValidator.validateString("mode", validModes, true);
-        if (mode != null && mode.equals(Mode.convertToImages.name())) {
-            settingsValidator.validateString("format", validEncoderFormats, true);
-            settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
+        if (mode != null) {
+            switch (Mode.valueOf(mode)) {
+                case convertToImages:
+                    settingsValidator.validateString("format", validEncoderFormats, true);
+                    settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
+                    break;
+                case extractText:
+                    settingsValidator.validateString("type", new String[]{"plaintext", "wordlist", "structuredText"}, true);
+                    break;
+            }
         }
 
         return settingsValidator;
@@ -173,33 +180,37 @@ public class JPedalServlet extends BaseServlet {
                         paramMap.get("format"),
                         Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
                 break;
-            case extractStructuredText:
-                ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
-                if (checkForStructure.openPDFFile()) {
-                    Document content = checkForStructure.getStructuredTextContent();
-                    if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
-                        ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
-                                userPdfFilePath,
-                                outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
-                    } else {
-                        throw new Exception("File contains no structured content to extract.");
-                    }
-                } else {
-                    throw new Exception("Unable to open specified file");
-                }
-
-                break;
             case extractText:
-                ExtractTextInRectangle.writeAllTextToDir(
-                        userPdfFilePath,
-                        outputDirStr + fileSeparator,
-                        -1);
-                break;
-            case extractWordlist:
-                ExtractTextAsWordlist.writeAllWordlistsToDir(
-                        userPdfFilePath,
-                        outputDirStr + fileSeparator,
-                        -1);
+                final String type = paramMap.get("type");
+                switch (type) {
+                    case "plaintext" :
+                        ExtractTextInRectangle.writeAllTextToDir(
+                                userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                -1);
+                        break;
+                    case "wordlist" :
+                        ExtractTextAsWordlist.writeAllWordlistsToDir(
+                                userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                -1);
+                        break;
+                    case "structuredText" :
+                        ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
+                        if (checkForStructure.openPDFFile()) {
+                            Document content = checkForStructure.getStructuredTextContent();
+                            if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
+                                ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
+                                        userPdfFilePath,
+                                        outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
+                            } else {
+                                throw new Exception("File contains no structured content to extract.");
+                            }
+                        } else {
+                            throw new Exception("Unable to open specified file");
+                        }
+                        break;
+                }
                 break;
             default:
                 throw new Exception("Unrecognised mode specified: " + mode.name());
