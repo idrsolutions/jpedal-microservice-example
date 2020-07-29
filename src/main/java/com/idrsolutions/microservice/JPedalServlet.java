@@ -183,7 +183,7 @@ public class JPedalServlet extends BaseServlet {
             case extractText:
                 final String type = paramMap.get("type");
                 switch (type) {
-                    case "plaintext" :
+                    case "plainText" :
                         ExtractTextInRectangle.writeAllTextToDir(
                                 userPdfFilePath,
                                 outputDirStr + fileSeparator,
