@@ -84,7 +84,7 @@ public class JPedalServlet extends BaseServlet {
                            File inputFile, File outputDir, String contextUrl) {
 
         final String[] settings = params.get("settings");
-        final String[] conversionParams = settings != null ? getConversionParams(settings[0]) : null;
+        final Map<String, String> conversionParams = settings != null ? parseConversionParams(settings[0]) : new HashMap<>();
 
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
@@ -114,25 +114,14 @@ public class JPedalServlet extends BaseServlet {
 
         try {
 
-            final HashMap<String, String> paramMap = new HashMap<>();
-            if (conversionParams != null) { //handle string based parameters
-                if (conversionParams.length % 2 == 0) {
-                    for (int z = 0; z < conversionParams.length; z += 2) {
-                        paramMap.put(conversionParams[z], conversionParams[z + 1]);
-                    }
-                } else {
-                    throw new Exception("Invalid length of String arguments");
-                }
-            }
-
             final Mode mode;
             try {
-                mode = Mode.valueOf(paramMap.remove("mode"));
+                mode = Mode.valueOf(conversionParams.remove("mode"));
             } catch (final IllegalArgumentException | NullPointerException e) {
                 throw new Exception("Required setting \"mode\" has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
             }
 
-            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, paramMap);
+            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams);
 
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
@@ -150,9 +139,9 @@ public class JPedalServlet extends BaseServlet {
 
     @Override
     protected SettingsValidator validateSettings(final String settings) {
-        final String[] conversionParams = settings != null ? getConversionParams(settings) : null;
+        final Map<String, String> convParams = settings != null ? parseConversionParams(settings) : new HashMap<>();
 
-        final SettingsValidator settingsValidator = new SettingsValidator(conversionParams);
+        final SettingsValidator settingsValidator = new SettingsValidator(convParams);
 
         final String mode = settingsValidator.validateString("mode", validModes, true);
         if (mode != null) {
