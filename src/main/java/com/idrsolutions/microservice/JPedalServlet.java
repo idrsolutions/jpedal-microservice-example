@@ -29,8 +29,11 @@ import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
 import org.w3c.dom.Document;
 
+import javax.json.stream.JsonParsingException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -83,8 +86,8 @@ public class JPedalServlet extends BaseServlet {
     protected void convert(Individual individual, Map<String, String[]> params,
                            File inputFile, File outputDir, String contextUrl) {
 
-        final String[] settings = params.get("settings");
-        final Map<String, String> conversionParams = settings != null ? parseConversionParams(settings[0]) : new HashMap<>();
+        final Map<String, String> conversionParams = individual.getConversionParams() != null
+                ? individual.getConversionParams() : new HashMap<>();
 
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
@@ -118,7 +121,8 @@ public class JPedalServlet extends BaseServlet {
             try {
                 mode = Mode.valueOf(conversionParams.remove("mode"));
             } catch (final IllegalArgumentException | NullPointerException e) {
-                throw new Exception("Required setting \"mode\" has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
+                throw new Exception("Required setting \"mode\" has incorrect value. Valid values are "
+                        + Arrays.toString(Mode.values()) + '.');
             }
 
             convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams);
@@ -137,9 +141,31 @@ public class JPedalServlet extends BaseServlet {
         }
     }
 
+    /**
+     * Validates the settings parameter passed to the request. It will parse the conversionParams,
+     * validate them, and then set the params in the Individual object.
+     *
+     * If settings are not parsed or validated, doError will be called.
+     *
+     * @param request the request for this conversion
+     * @param response the response object for the request
+     * @param individual the individual belonging to this conversion
+     * @return true if the settings are parsed and validated successfully, false if not
+     */
     @Override
-    protected SettingsValidator validateSettings(final String settings) {
-        final Map<String, String> convParams = settings != null ? parseConversionParams(settings) : new HashMap<>();
+    protected boolean validateRequest(final HttpServletRequest request, final HttpServletResponse response,
+                                      final Individual individual) {
+        final String settings = request.getParameter("settings");
+        Map<String, String> convParams = null;
+
+        if (settings != null) {
+            try {
+                convParams = parseConversionParams(settings);
+            } catch (JsonParsingException exception) {
+                doError(request, response, "Error encountered when parsing settings JSON <" + exception.getMessage() + ">", 400);
+                return false;
+            }
+        }
 
         final SettingsValidator settingsValidator = new SettingsValidator(convParams);
 
@@ -151,12 +177,20 @@ public class JPedalServlet extends BaseServlet {
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
                     break;
                 case extractText:
-                    settingsValidator.validateString("type", new String[]{"plaintext", "wordlist", "structuredText"}, true);
+                    settingsValidator.validateString("type",
+                            new String[]{"plaintext", "wordlist", "structuredText"}, true);
                     break;
             }
         }
 
-        return settingsValidator;
+        if (!settingsValidator.isValid()) {
+            doError(request, response, "Invalid settings detected.\n" + settingsValidator.getMessage(), 400);
+            return false;
+        }
+
+        individual.setConversionParams(convParams);
+
+        return true;
     }
 
     private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
