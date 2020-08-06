@@ -178,7 +178,7 @@ public class JPedalServlet extends BaseServlet {
                     break;
                 case extractText:
                     settingsValidator.validateString("type",
-                            new String[]{"plaintext", "wordlist", "structuredText"}, true);
+                            new String[]{"plainText", "wordlist", "structuredText"}, true);
                     break;
             }
         }
