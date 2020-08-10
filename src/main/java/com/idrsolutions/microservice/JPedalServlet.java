@@ -27,6 +27,7 @@ import org.jpedal.examples.images.ConvertPagesToImages;
 import org.jpedal.examples.text.ExtractStructuredText;
 import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
+import org.jpedal.exception.PdfException;
 import org.w3c.dom.Document;
 
 import javax.json.stream.JsonParsingException;
@@ -119,7 +120,7 @@ public class JPedalServlet extends BaseServlet {
             try {
                 mode = Mode.valueOf(conversionParams.remove("mode"));
             } catch (final IllegalArgumentException | NullPointerException e) {
-                throw new Exception("Required setting \"mode\" has incorrect value. Valid values are "
+                throw new JPedalServletException("Required setting \"mode\" has incorrect value. Valid values are "
                         + Arrays.toString(Mode.values()) + '.');
             }
 
@@ -133,6 +134,9 @@ public class JPedalServlet extends BaseServlet {
 
             individual.setState("processed");
 
+        } catch (final JPedalServletException | PdfException ex) {
+            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
+            individual.doError(1220, ex.getMessage());
         } catch (final Exception ex) {
             LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
             individual.doError(1220, "An error occurred whilst converting the file.");
@@ -222,16 +226,16 @@ public class JPedalServlet extends BaseServlet {
                                         userPdfFilePath,
                                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
                             } else {
-                                throw new Exception("File contains no structured content to extract.");
+                                throw new JPedalServletException("File contains no structured content to extract.");
                             }
                         } else {
-                            throw new Exception("Unable to open specified file");
+                            throw new JPedalServletException("Unable to open specified file");
                         }
                         break;
                 }
                 break;
             default:
-                throw new Exception("Unrecognised mode specified: " + mode.name());
+                throw new JPedalServletException("Unrecognised mode specified: " + mode.name());
         }
     }
 
@@ -261,5 +265,11 @@ public class JPedalServlet extends BaseServlet {
             return false;
         }
         return true;
+    }
+
+    static class JPedalServletException extends Exception {
+        JPedalServletException(final String msg) {
+            super(msg);
+        }
     }
 }
