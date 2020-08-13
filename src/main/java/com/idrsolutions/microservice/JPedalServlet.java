@@ -43,6 +43,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jpedal.examples.images.ExtractClippedImages;
+import org.jpedal.examples.images.ExtractImages;
 
 /**
  * Provides an API to use JPedal on its own dedicated app server. See the API
@@ -55,7 +57,7 @@ import java.util.logging.Logger;
 public class JPedalServlet extends BaseServlet {
 
     private enum Mode {
-        convertToImages, extractText
+        convertToImages, extractImages, extractText
     }
 
     private static final String[] validModes = Arrays.stream(Mode.values()).map(Enum::name).toArray(String[]::new);
@@ -175,6 +177,11 @@ public class JPedalServlet extends BaseServlet {
                     settingsValidator.validateString("format", validEncoderFormats, true);
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
                     break;
+                case extractImages:
+                    settingsValidator.validateString("type",
+                            new String[]{"rawImages", "clippedImages"}, true);
+                    settingsValidator.validateString("format", validEncoderFormats, true);
+                    break;
                 case extractText:
                     settingsValidator.validateString("type",
                             new String[]{"plainText", "wordlist", "structuredText"}, true);
@@ -202,6 +209,21 @@ public class JPedalServlet extends BaseServlet {
                         paramMap.get("format"),
                         Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
                 break;
+                case extractImages:{
+                final String type = paramMap.get("type");
+                switch (type) {
+                    case "rawImages" :
+                        ExtractImages.writeAllImagesToDir(
+                                userPdfFilePath, outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
+                                paramMap.get("format"), true, true);
+                        break;
+                    case "clippedImages" :
+                        ExtractClippedImages.writeAllClippedImagesToDirs(userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                paramMap.get("format"),new String[]{"0",fileNameWithoutExt});
+                        break;
+                }
+                } break;
             case extractText:
                 final String type = paramMap.get("type");
                 switch (type) {
