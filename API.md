@@ -21,7 +21,7 @@ See HTTP and POST params below for list of parameters.
 * **"input":** the type of input for the server to handle.
 * **"url":** the url for the server to handle; specified with {"input": "download"}.
 * **"file":** the file for the server to handle; specified with {"input": "upload"}.
-* **"settings":** string containing various key:value pairs divided by a semicolon.
+* **"settings":** the settings used for the JPedal conversion; provided in a JSON string and validated on submission.
 * **"callbackUrl":** the url to have a callback request sent to when the conversion has finished.
 
 **Example request:**
@@ -60,7 +60,7 @@ POST / HTTP/1.1
 Content-Type: application/x-www-form-urlencoded;
 Content-Length: 54
 
-input=download&url=http://your.domain/path/to/file.pdf&outputFormat=png
+input=download&url=http://your.domain/path/to/file.pdf
 ```
 
 **Success Response(s):**
@@ -86,6 +86,9 @@ input=download&url=http://your.domain/path/to/file.pdf&outputFormat=png
 * **Code** = 400
 * **Content** = ```{error: "Missing file"}```
 
+* **Code** = 400
+* **Content** = ```{error: "File size limit exceeded"}```
+
 * **Code** = 500
 * **Content** = ```{error: "Missing file name"}```
 
@@ -94,6 +97,12 @@ input=download&url=http://your.domain/path/to/file.pdf&outputFormat=png
 
 * **Code** = 400
 * **Content** = ```{error: "No url given"}```
+
+* **Code** = 400
+* **Content** = ```{error: "Error encountered when parsing settings JSON <[unique-error-message]>"}```
+
+* **Code** = 400
+* **Content** = ```{error: "Invalid settings detected. [unique-error-message]"}```
 
 ___
 
@@ -130,9 +139,12 @@ Check the status of a conversion.
 
 **Internal Error Codes**
 * 1050: libre office timeout
-* 1070: process error
-* 1100: other
+* 1060: invalid file
+* 1070: libre office process error
+* 1080: configuration error
 * 1200: could not get file from url
+* 1210: file exceeds file size limit
+* 1220: error occurred whilst converting the file
 
 **GET Error Response(s):**
 * **Code** = 404

@@ -27,10 +27,14 @@ import org.jpedal.examples.images.ConvertPagesToImages;
 import org.jpedal.examples.text.ExtractStructuredText;
 import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
+import org.jpedal.exception.PdfException;
 import org.w3c.dom.Document;
 
+import javax.json.stream.JsonParsingException;
 import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -39,6 +43,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.jpedal.examples.images.ExtractClippedImages;
+import org.jpedal.examples.images.ExtractImages;
 
 /**
  * Provides an API to use JPedal on its own dedicated app server. See the API
@@ -51,9 +57,10 @@ import java.util.logging.Logger;
 public class JPedalServlet extends BaseServlet {
 
     private enum Mode {
-        convertToImages, extractText, extractWordlist
+        convertToImages, extractImages, extractText
     }
 
+    private static final String[] validModes = Arrays.stream(Mode.values()).map(Enum::name).toArray(String[]::new);
     private static final String[] validEncoderFormats;
     static {
         final String[][] encoderFormats = SupportedFormats.getSupportedImageEncoders();
@@ -82,8 +89,8 @@ public class JPedalServlet extends BaseServlet {
     protected void convert(Individual individual, Map<String, String[]> params,
                            File inputFile, File outputDir, String contextUrl) {
 
-        final String[] settings = params.get("settings");
-        final String[] conversionParams = settings != null ? getConversionParams(settings[0]) : null;
+        final Map<String, String> conversionParams = individual.getSettings() != null
+                ? individual.getSettings() : new HashMap<>();
 
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
@@ -96,10 +103,7 @@ public class JPedalServlet extends BaseServlet {
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            final int result = convertToPDF(inputFile);
-            if (result != 0) {
-                individual.setState("error");
-                setErrorCode(individual, result);
+            if (!convertToPDF(inputFile, individual)) {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
@@ -114,27 +118,15 @@ public class JPedalServlet extends BaseServlet {
 
         try {
 
-            final HashMap<String, String> paramMap = new HashMap<>();
-            if (conversionParams != null) { //handle string based parameters
-                if (conversionParams.length % 2 == 0) {
-                    for (int z = 0; z < conversionParams.length; z += 2) {
-                        paramMap.put(conversionParams[z], conversionParams[z + 1]);
-                    }
-                } else {
-                    throw new Exception("Invalid length of String arguments");
-                }
-            }
-
             final Mode mode;
             try {
-                mode = Mode.valueOf(paramMap.remove("mode"));
+                mode = Mode.valueOf(conversionParams.remove("mode"));
             } catch (final IllegalArgumentException | NullPointerException e) {
-                throw new Exception("Required setting \"mode\" is missing or has incorrect value. Valid values are " + Arrays.toString(Mode.values()) + '.');
+                throw new JPedalServletException("Required setting \"mode\" has incorrect value. Valid values are "
+                        + Arrays.toString(Mode.values()) + '.');
             }
 
-            validateSettings(paramMap, mode);
-
-            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, paramMap);
+            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams);
 
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
@@ -144,23 +136,67 @@ public class JPedalServlet extends BaseServlet {
 
             individual.setState("processed");
 
+        } catch (final JPedalServletException | PdfException ex) {
+            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
+            individual.doError(1220, ex.getMessage());
         } catch (final Exception ex) {
             LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.setState("error");
+            individual.doError(1220, "An error occurred whilst converting the file.");
         }
     }
 
-    private static void validateSettings(final Map<String, String> paramMap, final Mode mode) throws Exception {
-        final SettingsValidator settingsValidator = new SettingsValidator(paramMap);
+    /**
+     * Validates the settings parameter passed to the request. It will parse the conversionParams,
+     * validate them, and then set the params in the Individual object.
+     *
+     * If settings are not parsed or validated, doError will be called.
+     *
+     * @param request the request for this conversion
+     * @param response the response object for the request
+     * @param individual the individual belonging to this conversion
+     * @return true if the settings are parsed and validated successfully, false if not
+     */
+    @Override
+    protected boolean validateRequest(final HttpServletRequest request, final HttpServletResponse response,
+                                      final Individual individual) {
 
-        if (mode == Mode.convertToImages) {
-            settingsValidator.requireString("format", validEncoderFormats);
-            settingsValidator.optionalFloat("scaling", new float[]{0.1f, 10});
+        final Map<String, String> settings;
+        try {
+            settings = parseSettings(request.getParameter("settings"));
+        } catch (JsonParsingException exception) {
+            doError(request, response, "Error encountered when parsing settings JSON <" + exception.getMessage() + '>', 400);
+            return false;
         }
 
-        if (!settingsValidator.validates()) {
-            throw new Exception(settingsValidator.getMessage());
+        final SettingsValidator settingsValidator = new SettingsValidator(settings);
+
+        final String mode = settingsValidator.validateString("mode", validModes, true);
+        if (mode != null && Arrays.stream(validModes).anyMatch(s -> s.equals(mode))) {
+            switch (Mode.valueOf(mode)) {
+                case convertToImages:
+                    settingsValidator.validateString("format", validEncoderFormats, true);
+                    settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
+                    break;
+                case extractImages:
+                    settingsValidator.validateString("type",
+                            new String[]{"rawImages", "clippedImages"}, true);
+                    settingsValidator.validateString("format", validEncoderFormats, true);
+                    break;
+                case extractText:
+                    settingsValidator.validateString("type",
+                            new String[]{"plainText", "wordlist", "structuredText"}, true);
+                    break;
+            }
         }
+
+        if (!settingsValidator.isValid()) {
+            doError(request, response, "Invalid settings detected.\n" + settingsValidator.getMessage(), 400);
+            return false;
+        }
+
+        individual.setSettings(settings);
+
+        return true;
     }
 
     private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
@@ -173,52 +209,55 @@ public class JPedalServlet extends BaseServlet {
                         paramMap.get("format"),
                         Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
                 break;
+                case extractImages:{
+                final String type = paramMap.get("type");
+                switch (type) {
+                    case "rawImages" :
+                        ExtractImages.writeAllImagesToDir(
+                                userPdfFilePath, outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
+                                paramMap.get("format"), true, true);
+                        break;
+                    case "clippedImages" :
+                        ExtractClippedImages.writeAllClippedImagesToDirs(userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                paramMap.get("format"),new String[]{"0",fileNameWithoutExt});
+                        break;
+                }
+                } break;
             case extractText:
-                ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
-                if (checkForStructure.openPDFFile()) {
-                    Document content = checkForStructure.getStructuredTextContent();
-                    if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
-                        ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
-                                userPdfFilePath,
-                                outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
-                    } else {
+                final String type = paramMap.get("type");
+                switch (type) {
+                    case "plainText" :
                         ExtractTextInRectangle.writeAllTextToDir(
                                 userPdfFilePath,
                                 outputDirStr + fileSeparator,
                                 -1);
-                    }
+                        break;
+                    case "wordlist" :
+                        ExtractTextAsWordlist.writeAllWordlistsToDir(
+                                userPdfFilePath,
+                                outputDirStr + fileSeparator,
+                                -1);
+                        break;
+                    case "structuredText" :
+                        ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
+                        if (checkForStructure.openPDFFile()) {
+                            Document content = checkForStructure.getStructuredTextContent();
+                            if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
+                                ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
+                                        userPdfFilePath,
+                                        outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
+                            } else {
+                                throw new JPedalServletException("File contains no structured content to extract.");
+                            }
+                        } else {
+                            throw new JPedalServletException("Unable to open specified file");
+                        }
+                        break;
                 }
                 break;
-            case extractWordlist:
-                ExtractTextAsWordlist.writeAllWordlistsToDir(
-                        userPdfFilePath,
-                        outputDirStr + fileSeparator,
-                        -1);
-                break;
             default:
-                throw new Exception("Unrecognised mode specified: " + mode.name());
-        }
-    }
-
-    /**
-     * Set the error code in the given individual object. Error codes are based
-     * on the return values of 
-     * {@link JPedalServlet#convertToPDF(File)}
-     *
-     * @param individual the individual object associated with this conversion
-     * @param errorCode The return code to be parsed to an error code
-     */
-    private void setErrorCode(final Individual individual, final int errorCode) {
-        switch (errorCode) {
-            case 1:
-                individual.doError(1050); // Libreoffice killed after 1 minute
-                break;
-            case 2:
-                individual.doError(1070); // Internal error
-                break;
-            default:
-                individual.doError(1100); // Internal error
-                break;
+                throw new JPedalServletException("Unrecognised mode specified: " + mode.name());
         }
     }
 
@@ -226,10 +265,10 @@ public class JPedalServlet extends BaseServlet {
      * Converts an office file to PDF using LibreOffice.
      *
      * @param file The office file to convert to PDF
-     * @return 0 if success, 1 if libreoffice timed out, 2 if process error
-     * occurs
+     * @param individual The Individual on which to set the error if one occurs
+     * @return true on success, false on failure
      */
-    private static int convertToPDF(final File file) {
+    private static boolean convertToPDF(final File file, final Individual individual) {
         final ProcessBuilder pb = new ProcessBuilder("soffice", "--headless", "--convert-to", "pdf", file.getName());
         pb.directory(new File(file.getParent()));
         final Process process;
@@ -238,13 +277,21 @@ public class JPedalServlet extends BaseServlet {
             process = pb.start();
             if (!process.waitFor(1, TimeUnit.MINUTES)) {
                 process.destroy();
-                return 1;
+                individual.doError(1050, "Libreoffice timed out after 1 minute");
+                return false;
             }
         } catch (final IOException | InterruptedException e) {
             e.printStackTrace(); // soffice location may need to be added to the path
             LOG.severe(e.getMessage());
-            return 2;
+            individual.doError(1070, "Internal error processing file");
+            return false;
         }
-        return 0;
+        return true;
+    }
+
+    static class JPedalServletException extends Exception {
+        JPedalServletException(final String msg) {
+            super(msg);
+        }
     }
 }
