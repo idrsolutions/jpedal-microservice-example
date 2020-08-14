@@ -171,7 +171,7 @@ public class JPedalServlet extends BaseServlet {
         final SettingsValidator settingsValidator = new SettingsValidator(settings);
 
         final String mode = settingsValidator.validateString("mode", validModes, true);
-        if (mode != null) {
+        if (mode != null && Arrays.stream(validModes).anyMatch(s -> s.equals(mode))) {
             switch (Mode.valueOf(mode)) {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
