@@ -54,52 +54,15 @@ We provide a docker image and information on how to deploy it [here](https://git
 -----
 
 ## Usage: ##
-
 You can interact with the JPedal Microservice Example using the REST API.
 A complete list of raw requests that can be used can be found [here](/API.md).
 
-In order to perform an extraction you need to specify what you wish to extract using the settings value.
-The following operations are currently available using the specified values.
+The JPedal Microservice Example can perform several different conversion or extraction options.
+Below are links to the documentation for each option available.
 
-## Convert Pages To Images ##
-Convert each page of the document to an image at a given scaling (where 1.0 is 100%) in the specified image format.
-### Settings ###
-*Required*
-**mode** : convertToImages
-**format** : [png|bmp|tif|jpg|jpx]
-
-*Optional*
-**scaling** : 1.0
-
-*Example*
-mode:convertToImages;format:png;scaling:2.0
-
-### Extract Text ###
-Extract the text from each page of a document. The content is extracted by working down the page from left to right.
-### Settings ###
-*Required*
-**mode** : extractText
-
-*Example*
-mode:extractText
-
-### Extract Structured Text ###
-Extract the structured text from each page of a document. If the document contains [structured content](https://support.idrsolutions.com/hc/en-us/articles/360030091571) then this is extracted. If the content is unstructured then the extraction fails.
-### Settings ###
-*Required*
-**mode** : extractStructuredText
-
-*Example*
-mode:extractStructuredText
-
-### Extract Word List ###
-Extract the text from each page of a document as a list of words including the page coordinates for each word. The coordinates are in the order of Left, Top, Right, Bottom.
-### Settings ###
-*Required*
-**mode** : extractWordlist
-
-*Example*
-mode:extractWordlist
+ - [Convert PDF pages to Images](https://docs.idrsolutions.com/jpedal/convert-pdf-to-image/) will convert each page into an image.
+ - [Extract Images from PDF pages](https://docs.idrsolutions.com/jpedal/extract-images-from-pdf/) will extract each image found on a page.
+ - [Extract Text from PDF pages](https://docs.idrsolutions.com/jpedal/extract-text-from-pdf/) will extract all the text from each page.
 
 -----
 
@@ -107,7 +70,7 @@ mode:extractWordlist
 
 Found a bug, or have a suggestion / improvement? Let us know through the Issues page.
 
-Got questions? You can contact us [here](https://idrsolutions.zendesk.com/hc/en-us/requests/new).
+Got questions? You can contact us [here](https://idrsolutions.atlassian.net/servicedesk/customer/portal/8).
 
 -----
 
