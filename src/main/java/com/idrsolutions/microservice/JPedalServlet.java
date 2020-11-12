@@ -269,12 +269,17 @@ public class JPedalServlet extends BaseServlet {
      * @return true on success, false on failure
      */
     private static boolean convertToPDF(final File file, final Individual individual) {
-        final ProcessBuilder pb = new ProcessBuilder("soffice", "--headless", "--convert-to", "pdf", file.getName());
+        final String uuid = individual.getUuid();
+        final String uniqueLOProfile = TEMP_DIR + "LO-" + uuid;
+
+        final ProcessBuilder pb = new ProcessBuilder("/opt/libreoffice6.4/program/soffice",
+                "-env:UserInstallation=file://" + uniqueLOProfile,
+                "--headless", "--convert-to", "pdf", file.getName());
+
         pb.directory(new File(file.getParent()));
-        final Process process;
 
         try {
-            process = pb.start();
+            final Process process = pb.start();
             if (!process.waitFor(1, TimeUnit.MINUTES)) {
                 process.destroy();
                 individual.doError(1050, "Libreoffice timed out after 1 minute");
@@ -285,6 +290,8 @@ public class JPedalServlet extends BaseServlet {
             LOG.severe(e.getMessage());
             individual.doError(1070, "Internal error processing file");
             return false;
+        } finally {
+            deleteFolder(new File(uniqueLOProfile));
         }
         return true;
     }
