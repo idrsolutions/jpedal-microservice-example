@@ -181,10 +181,12 @@ public class JPedalServlet extends BaseServlet {
                     settingsValidator.validateString("type",
                             new String[]{"rawImages", "clippedImages"}, true);
                     settingsValidator.validateString("format", validEncoderFormats, true);
+                    settingsValidator.validateString("password", "*", false);
                     break;
                 case extractText:
                     settingsValidator.validateString("type",
                             new String[]{"plainText", "wordlist", "structuredText"}, true);
+                    settingsValidator.validateString("password", "*", false);
                     break;
             }
         }
@@ -214,11 +216,14 @@ public class JPedalServlet extends BaseServlet {
                 switch (type) {
                     case "rawImages" :
                         ExtractImages.writeAllImagesToDir(
-                                userPdfFilePath, outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
+                                userPdfFilePath,
+                                paramMap.get("password"),
+                                outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
                                 paramMap.get("format"), true, true);
                         break;
                     case "clippedImages" :
                         ExtractClippedImages.writeAllClippedImagesToDirs(userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 paramMap.get("format"),new String[]{"0",fileNameWithoutExt});
                         break;
@@ -230,12 +235,14 @@ public class JPedalServlet extends BaseServlet {
                     case "plainText" :
                         ExtractTextInRectangle.writeAllTextToDir(
                                 userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 -1);
                         break;
                     case "wordlist" :
                         ExtractTextAsWordlist.writeAllWordlistsToDir(
                                 userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 -1);
                         break;
@@ -246,6 +253,7 @@ public class JPedalServlet extends BaseServlet {
                             if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
                                 ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
                                         userPdfFilePath,
+                                        paramMap.get("password"),
                                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
                             } else {
                                 throw new JPedalServletException("File contains no structured content to extract.");
