@@ -176,6 +176,7 @@ public class JPedalServlet extends BaseServlet {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
+                    settingsValidator.validateString("password", "*", false);
                     break;
                 case extractImages:
                     settingsValidator.validateString("type",
@@ -209,7 +210,8 @@ public class JPedalServlet extends BaseServlet {
                         userPdfFilePath,
                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
                         paramMap.get("format"),
-                        Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
+                        Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")),
+                        paramMap.get("password"));
                 break;
                 case extractImages:{
                 final String type = paramMap.get("type");
