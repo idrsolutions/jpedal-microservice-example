@@ -176,15 +176,18 @@ public class JPedalServlet extends BaseServlet {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
+                    settingsValidator.validateString("password", "*", false);
                     break;
                 case extractImages:
                     settingsValidator.validateString("type",
                             new String[]{"rawImages", "clippedImages"}, true);
                     settingsValidator.validateString("format", validEncoderFormats, true);
+                    settingsValidator.validateString("password", "*", false);
                     break;
                 case extractText:
                     settingsValidator.validateString("type",
                             new String[]{"plainText", "wordlist", "structuredText"}, true);
+                    settingsValidator.validateString("password", "*", false);
                     break;
             }
         }
@@ -207,18 +210,22 @@ public class JPedalServlet extends BaseServlet {
                         userPdfFilePath,
                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
                         paramMap.get("format"),
-                        Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")));
+                        Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")),
+                        paramMap.get("password"));
                 break;
                 case extractImages:{
                 final String type = paramMap.get("type");
                 switch (type) {
                     case "rawImages" :
                         ExtractImages.writeAllImagesToDir(
-                                userPdfFilePath, outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
+                                userPdfFilePath,
+                                paramMap.get("password"),
+                                outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
                                 paramMap.get("format"), true, true);
                         break;
                     case "clippedImages" :
                         ExtractClippedImages.writeAllClippedImagesToDirs(userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 paramMap.get("format"),new String[]{"0",fileNameWithoutExt});
                         break;
@@ -230,12 +237,14 @@ public class JPedalServlet extends BaseServlet {
                     case "plainText" :
                         ExtractTextInRectangle.writeAllTextToDir(
                                 userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 -1);
                         break;
                     case "wordlist" :
                         ExtractTextAsWordlist.writeAllWordlistsToDir(
                                 userPdfFilePath,
+                                paramMap.get("password"),
                                 outputDirStr + fileSeparator,
                                 -1);
                         break;
@@ -246,6 +255,7 @@ public class JPedalServlet extends BaseServlet {
                             if (content != null && content.hasChildNodes() && content.getDocumentElement().hasChildNodes()) {
                                 ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
                                         userPdfFilePath,
+                                        paramMap.get("password"),
                                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
                             } else {
                                 throw new JPedalServletException("File contains no structured content to extract.");
@@ -269,12 +279,17 @@ public class JPedalServlet extends BaseServlet {
      * @return true on success, false on failure
      */
     private static boolean convertToPDF(final File file, final Individual individual) {
-        final ProcessBuilder pb = new ProcessBuilder("soffice", "--headless", "--convert-to", "pdf", file.getName());
+        final String uuid = individual.getUuid();
+        final String uniqueLOProfile = TEMP_DIR + "LO-" + uuid;
+
+        final ProcessBuilder pb = new ProcessBuilder("soffice",
+                "-env:UserInstallation=file://" + uniqueLOProfile,
+                "--headless", "--convert-to", "pdf", file.getName());
+
         pb.directory(new File(file.getParent()));
-        final Process process;
 
         try {
-            process = pb.start();
+            final Process process = pb.start();
             if (!process.waitFor(1, TimeUnit.MINUTES)) {
                 process.destroy();
                 individual.doError(1050, "Libreoffice timed out after 1 minute");
@@ -285,6 +300,8 @@ public class JPedalServlet extends BaseServlet {
             LOG.severe(e.getMessage());
             individual.doError(1070, "Internal error processing file");
             return false;
+        } finally {
+            deleteFolder(new File(uniqueLOProfile));
         }
         return true;
     }
