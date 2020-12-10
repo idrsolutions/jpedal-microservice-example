@@ -176,18 +176,18 @@ public class JPedalServlet extends BaseServlet {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
                 case extractImages:
                     settingsValidator.validateString("type",
                             new String[]{"rawImages", "clippedImages"}, true);
                     settingsValidator.validateString("format", validEncoderFormats, true);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
                 case extractText:
                     settingsValidator.validateString("type",
                             new String[]{"plainText", "wordlist", "structuredText"}, true);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
             }
         }
