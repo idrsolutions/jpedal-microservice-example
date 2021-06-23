@@ -136,12 +136,9 @@ public class JPedalServlet extends BaseServlet {
 
             individual.setState("processed");
 
-        } catch (final JPedalServletException | PdfException ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, ex.getMessage());
-        } catch (final Exception ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, "An error occurred whilst converting the file.");
+        } catch (final Throwable ex) {
+            LOG.log(Level.SEVERE, "Exception thrown when converting input", ex);
+            individual.doError(1220, "Exception thrown when converting input" + ex.getMessage());
         }
     }
 
