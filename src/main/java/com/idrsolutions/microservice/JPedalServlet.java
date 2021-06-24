@@ -3,7 +3,7 @@
  *
  * Project Info: https://github.com/idrsolutions/jpedal-microservice-example
  *
- * Copyright 2020 IDRsolutions
+ * Copyright 2021 IDRsolutions
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,6 +107,12 @@ public class JPedalServlet extends BaseServlet {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
+            final File userPdfFile = new File(userPdfFilePath);
+            if (!userPdfFile.exists()) {
+                LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + userPdfFile.getAbsolutePath());
+                individual.doError(1080, "Error processing file");
+                return;
+            }
         } else {
             userPdfFilePath = inputDir + fileSeparator + fileName;
         }
@@ -136,12 +142,9 @@ public class JPedalServlet extends BaseServlet {
 
             individual.setState("processed");
 
-        } catch (final JPedalServletException | PdfException ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, ex.getMessage());
-        } catch (final Exception ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, "An error occurred whilst converting the file.");
+        } catch (final Throwable ex) {
+            LOG.log(Level.SEVERE, "Exception thrown when converting input", ex);
+            individual.doError(1220, "Exception thrown when converting input" + ex.getMessage());
         }
     }
 
@@ -176,18 +179,18 @@ public class JPedalServlet extends BaseServlet {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
                     settingsValidator.validateFloat("scaling", new float[]{0.1f, 10}, false);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
                 case extractImages:
                     settingsValidator.validateString("type",
                             new String[]{"rawImages", "clippedImages"}, true);
                     settingsValidator.validateString("format", validEncoderFormats, true);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
                 case extractText:
                     settingsValidator.validateString("type",
                             new String[]{"plainText", "wordlist", "structuredText"}, true);
-                    settingsValidator.validateString("password", "*", false);
+                    settingsValidator.validateString("password", ".*", false);
                     break;
             }
         }
