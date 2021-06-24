@@ -107,6 +107,12 @@ public class JPedalServlet extends BaseServlet {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
+            final File userPdfFile = new File(userPdfFilePath);
+            if (!userPdfFile.exists()) {
+                LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + userPdfFile.getAbsolutePath());
+                individual.doError(1080, "Error processing file");
+                return;
+            }
         } else {
             userPdfFilePath = inputDir + fileSeparator + fileName;
         }
