@@ -56,7 +56,7 @@ import org.jpedal.examples.images.ExtractImages;
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
 
-    private enum Mode {
+    protected enum Mode {
         convertToImages, extractImages, extractText
     }
 
@@ -98,7 +98,7 @@ public class JPedalServlet extends BaseServlet {
         // To avoid repeated calls to getParent() and getAbsolutePath()
         final String inputDir = inputFile.getParent();
         final String outputDirStr = outputDir.getAbsolutePath();
-        
+
         final String userPdfFilePath;
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
@@ -202,7 +202,7 @@ public class JPedalServlet extends BaseServlet {
         return true;
     }
 
-    private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
+    protected static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
                                    final String fileNameWithoutExt, final Map<String, String> paramMap) throws Exception {
         switch (mode) {
             case convertToImages:
@@ -278,7 +278,7 @@ public class JPedalServlet extends BaseServlet {
      * @param individual The Individual on which to set the error if one occurs
      * @return true on success, false on failure
      */
-    private static boolean convertToPDF(final File file, final Individual individual) {
+    protected static boolean convertToPDF(final File file, final Individual individual) {
         final String uuid = individual.getUuid();
         final String uniqueLOProfile = TEMP_DIR + "LO-" + uuid;
 
