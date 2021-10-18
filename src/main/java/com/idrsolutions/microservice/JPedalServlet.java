@@ -283,10 +283,10 @@ public class JPedalServlet extends BaseServlet {
      */
     private static boolean convertToPDF(final File file, final Individual individual) {
         final String uuid = individual.getUuid();
-        final String uniqueLOProfile = TEMP_DIR + "LO-" + uuid;
+        final String uniqueLOProfile = TEMP_DIR.replace('\\', '/') + "LO-" + uuid;
 
         final ProcessBuilder pb = new ProcessBuilder("soffice",
-                "-env:UserInstallation=file://" + uniqueLOProfile,
+                "-env:UserInstallation=file:///" + uniqueLOProfile + "/",
                 "--headless", "--convert-to", "pdf", file.getName());
 
         pb.directory(new File(file.getParent()));
