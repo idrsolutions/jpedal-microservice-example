@@ -107,6 +107,12 @@ public class JPedalServlet extends BaseServlet {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
+            final File userPdfFile = new File(userPdfFilePath);
+            if (!userPdfFile.exists()) {
+                LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + userPdfFile.getAbsolutePath());
+                individual.doError(1080, "Error processing file");
+                return;
+            }
         } else {
             userPdfFilePath = inputDir + fileSeparator + fileName;
         }
@@ -136,12 +142,9 @@ public class JPedalServlet extends BaseServlet {
 
             individual.setState("processed");
 
-        } catch (final JPedalServletException | PdfException ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, ex.getMessage());
-        } catch (final Exception ex) {
-            LOG.log(Level.SEVERE, "Exception thrown when trying to convert file", ex);
-            individual.doError(1220, "An error occurred whilst converting the file.");
+        } catch (final Throwable ex) {
+            LOG.log(Level.SEVERE, "Exception thrown when converting input", ex);
+            individual.doError(1220, "Exception thrown when converting input" + ex.getMessage());
         }
     }
 
@@ -280,10 +283,10 @@ public class JPedalServlet extends BaseServlet {
      */
     private static boolean convertToPDF(final File file, final Individual individual) {
         final String uuid = individual.getUuid();
-        final String uniqueLOProfile = TEMP_DIR + "LO-" + uuid;
+        final String uniqueLOProfile = TEMP_DIR.replace('\\', '/') + "LO-" + uuid;
 
         final ProcessBuilder pb = new ProcessBuilder("soffice",
-                "-env:UserInstallation=file://" + uniqueLOProfile,
+                "-env:UserInstallation=file:///" + uniqueLOProfile + "/",
                 "--headless", "--convert-to", "pdf", file.getName());
 
         pb.directory(new File(file.getParent()));
