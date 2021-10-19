@@ -24,10 +24,11 @@ import com.idrsolutions.image.utility.SupportedFormats;
 import com.idrsolutions.microservice.utils.SettingsValidator;
 import com.idrsolutions.microservice.utils.ZipHelper;
 import org.jpedal.examples.images.ConvertPagesToImages;
+import org.jpedal.examples.images.ExtractClippedImages;
+import org.jpedal.examples.images.ExtractImages;
 import org.jpedal.examples.text.ExtractStructuredText;
 import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
-import org.jpedal.exception.PdfException;
 import org.w3c.dom.Document;
 
 import javax.json.stream.JsonParsingException;
@@ -43,8 +44,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.jpedal.examples.images.ExtractClippedImages;
-import org.jpedal.examples.images.ExtractImages;
 
 /**
  * Provides an API to use JPedal on its own dedicated app server. See the API
@@ -52,9 +51,15 @@ import org.jpedal.examples.images.ExtractImages;
  * 
  * @see BaseServlet
  */
-@WebServlet(name = "jpedal", urlPatterns = {"/jpedal"})
+@WebServlet(name = "jpedal", urlPatterns = "/jpedal", loadOnStartup = 1)
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
+
+    static {
+        BaseServlet.setInputPath(USER_HOME + "/.idr/jpedal-microservice/input/");
+        BaseServlet.setOutputPath(USER_HOME + "/.idr/jpedal-microservice/output/");
+        FileServlet.setBasePath(USER_HOME + "/.idr/jpedal-microservice/output");
+    }
 
     private enum Mode {
         convertToImages, extractImages, extractText
