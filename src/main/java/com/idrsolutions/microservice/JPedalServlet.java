@@ -56,9 +56,9 @@ import java.util.logging.Logger;
 public class JPedalServlet extends BaseServlet {
 
     static {
-        BaseServlet.setInputPath(USER_HOME + "/.idr/jpedal-microservice/input/");
-        BaseServlet.setOutputPath(USER_HOME + "/.idr/jpedal-microservice/output/");
-        FileServlet.setBasePath(USER_HOME + "/.idr/jpedal-microservice/output");
+        setInputPath(USER_HOME + "/.idr/jpedal-microservice/input/");
+        setOutputPath(USER_HOME + "/.idr/jpedal-microservice/output/");
+        OutputFileServlet.setBasePath(USER_HOME + "/.idr/jpedal-microservice/output");
     }
 
     private enum Mode {
