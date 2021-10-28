@@ -21,6 +21,7 @@
 package com.idrsolutions.microservice;
 
 import com.idrsolutions.image.utility.SupportedFormats;
+import com.idrsolutions.microservice.utils.LibreOfficeHelper;
 import com.idrsolutions.microservice.utils.SettingsValidator;
 import com.idrsolutions.microservice.utils.ZipHelper;
 import org.jpedal.examples.images.ConvertPagesToImages;
@@ -37,11 +38,9 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -108,7 +107,7 @@ public class JPedalServlet extends BaseServlet {
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            if (!convertToPDF(inputFile, individual)) {
+            if (!LibreOfficeHelper.convertToPDF(inputFile, individual)) {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
@@ -277,41 +276,6 @@ public class JPedalServlet extends BaseServlet {
             default:
                 throw new JPedalServletException("Unrecognised mode specified: " + mode.name());
         }
-    }
-
-    /**
-     * Converts an office file to PDF using LibreOffice.
-     *
-     * @param file The office file to convert to PDF
-     * @param individual The Individual on which to set the error if one occurs
-     * @return true on success, false on failure
-     */
-    private static boolean convertToPDF(final File file, final Individual individual) {
-        final String uuid = individual.getUuid();
-        final String uniqueLOProfile = TEMP_DIR.replace('\\', '/') + "LO-" + uuid;
-
-        final ProcessBuilder pb = new ProcessBuilder("soffice",
-                "-env:UserInstallation=file:///" + uniqueLOProfile + "/",
-                "--headless", "--convert-to", "pdf", file.getName());
-
-        pb.directory(new File(file.getParent()));
-
-        try {
-            final Process process = pb.start();
-            if (!process.waitFor(1, TimeUnit.MINUTES)) {
-                process.destroy();
-                individual.doError(1050, "Libreoffice timed out after 1 minute");
-                return false;
-            }
-        } catch (final IOException | InterruptedException e) {
-            e.printStackTrace(); // soffice location may need to be added to the path
-            LOG.severe(e.getMessage());
-            individual.doError(1070, "Internal error processing file");
-            return false;
-        } finally {
-            deleteFolder(new File(uniqueLOProfile));
-        }
-        return true;
     }
 
     static class JPedalServletException extends Exception {
