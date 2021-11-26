@@ -21,6 +21,7 @@
 package com.idrsolutions.microservice;
 
 import com.idrsolutions.image.utility.SupportedFormats;
+import com.idrsolutions.microservice.utils.DefaultFileServlet;
 import com.idrsolutions.microservice.utils.LibreOfficeHelper;
 import com.idrsolutions.microservice.utils.SettingsValidator;
 import com.idrsolutions.microservice.utils.ZipHelper;
@@ -141,7 +142,7 @@ public class JPedalServlet extends BaseServlet {
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
 
-            final String outputPathInDocroot = individual.getUuid() + '/' + fileNameWithoutExt;
+            final String outputPathInDocroot = individual.getUuid() + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
             individual.setValue("downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
 
             individual.setState("processed");
