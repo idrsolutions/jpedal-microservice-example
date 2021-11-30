@@ -5,6 +5,7 @@ import javax.servlet.annotation.WebListener;
 @WebListener
 public class JPedalServletContextListener extends BaseServletContextListener {
 
+    @Override
     public String getConfigPath() {
         String userDir = System.getProperty("user.home");
         if (!userDir.endsWith("/") && !userDir.endsWith("\\")) {
@@ -13,6 +14,7 @@ public class JPedalServletContextListener extends BaseServletContextListener {
         return userDir + "/.idr/jpedal-microservice/";
     }
 
+    @Override
     public String getConfigName(){
         return "jpedal-microservice.properties";
     }

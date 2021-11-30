@@ -41,6 +41,7 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,7 +108,16 @@ public class JPedalServlet extends BaseServlet {
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            if (!LibreOfficeHelper.convertToPDF((String) getServletContext().getAttribute("service.libreOfficePath"), inputFile, individual)) {
+            Properties properties = (Properties) getServletContext().getAttribute("properties");
+
+            final String libreOfficePath = properties.getProperty("service.libreOfficePath");
+            final String libreOfficePathVaried;
+            if (libreOfficePath != null && !libreOfficePath.isEmpty()) {
+                libreOfficePathVaried = libreOfficePath;
+            } else {
+                libreOfficePathVaried ="soffice";
+            }
+            if (!LibreOfficeHelper.convertToPDF(libreOfficePathVaried, inputFile, individual)) {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
