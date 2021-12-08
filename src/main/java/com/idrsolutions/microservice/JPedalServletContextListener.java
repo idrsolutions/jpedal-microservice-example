@@ -1,5 +1,6 @@
 package com.idrsolutions.microservice;
 
+import javax.servlet.ServletContextEvent;
 import javax.servlet.annotation.WebListener;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -23,6 +24,12 @@ public class JPedalServletContextListener extends BaseServletContextListener {
         return "jpedal-microservice.properties";
     }
 
+    @Override
+    public void contextInitialized(final ServletContextEvent servletContextEvent) {
+        super.contextInitialized(servletContextEvent);
+        Properties propertiesFile = (Properties) servletContextEvent.getServletContext().getAttribute("properties");
+        OutputFileServlet.setBasePath(propertiesFile.getProperty("outputPath"));
+    }
 
     @Override
     public void validateConfigFileValues(final Properties propertiesFile) {

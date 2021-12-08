@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  * 
  * @see BaseServlet
  */
-@WebServlet(name = "jpedal", urlPatterns = "/jpedal", loadOnStartup = 1)
+@WebServlet(name = "jpedal", urlPatterns = "/jpedal")
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
 
