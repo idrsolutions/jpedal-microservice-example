@@ -55,12 +55,6 @@ import java.util.logging.Logger;
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
 
-    static {
-        setInputPath(USER_HOME + "/.idr/jpedal-microservice/input/");
-        setOutputPath(USER_HOME + "/.idr/jpedal-microservice/output/");
-        OutputFileServlet.setBasePath(USER_HOME + "/.idr/jpedal-microservice/output");
-    }
-
     private enum Mode {
         convertToImages, extractImages, extractText
     }
