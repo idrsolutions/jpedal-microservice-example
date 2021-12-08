@@ -110,7 +110,7 @@ public class JPedalServlet extends BaseServlet {
         if (!isPDF) {
             Properties properties = (Properties) getServletContext().getAttribute("properties");
 
-            final String libreOfficePath = properties.getProperty("service.libreOfficePath");
+            final String libreOfficePath = properties.getProperty("libreOfficePath");
             if (!LibreOfficeHelper.convertToPDF(libreOfficePath, inputFile, individual)) {
                 return;
             }
