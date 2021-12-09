@@ -102,7 +102,7 @@ public class JPedalServlet extends BaseServlet {
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            Properties properties = (Properties) getServletContext().getAttribute("properties");
+            final Properties properties = (Properties) getServletContext().getAttribute("properties");
 
             final String libreOfficePath = properties.getProperty("libreOfficePath");
             if (!LibreOfficeHelper.convertToPDF(libreOfficePath, inputFile, individual)) {
