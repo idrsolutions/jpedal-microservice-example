@@ -33,7 +33,7 @@ public class JPedalServletContextListener extends BaseServletContextListener {
     }
 
     @Override
-    public void validateConfigFileValues(final Properties propertiesFile) {
+    protected void validateConfigFileValues(final Properties propertiesFile) {
         super.validateConfigFileValues(propertiesFile);
 
         validateLibreOfficePath(propertiesFile);
