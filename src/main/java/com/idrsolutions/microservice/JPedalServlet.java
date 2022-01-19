@@ -44,6 +44,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,15 +54,9 @@ import java.util.logging.Logger;
  * 
  * @see BaseServlet
  */
-@WebServlet(name = "jpedal", urlPatterns = "/jpedal", loadOnStartup = 1)
+@WebServlet(name = "jpedal", urlPatterns = "/jpedal")
 @MultipartConfig
 public class JPedalServlet extends BaseServlet {
-
-    static {
-        setInputPath(USER_HOME + "/.idr/jpedal-microservice/input/");
-        setOutputPath(USER_HOME + "/.idr/jpedal-microservice/output/");
-        OutputFileServlet.setBasePath(USER_HOME + "/.idr/jpedal-microservice/output");
-    }
 
     private enum Mode {
         convertToImages, extractImages, extractText
@@ -116,7 +111,10 @@ public class JPedalServlet extends BaseServlet {
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            if (!LibreOfficeHelper.convertToPDF(inputFile, uuid)) {
+            final Properties properties = (Properties) getServletContext().getAttribute(BaseServletContextListener.KEY_PROPERTIES);
+
+            final String libreOfficePath = properties.getProperty(BaseServletContextListener.KEY_PROPERTY_LIBRE_OFFICE);
+            if (!LibreOfficeHelper.convertToPDF(libreOfficePath, inputFile, uuid)) {
                 return;
             }
             userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
