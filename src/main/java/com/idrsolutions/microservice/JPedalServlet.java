@@ -143,6 +143,11 @@ public class JPedalServlet extends BaseServlet {
             final String outputPathInDocroot = individual.getUuid() + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
             individual.setValue("downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
 
+            if (storage != null) {
+                final String remoteUrl = storage.put(new File(outputDirStr + "/" + fileNameWithoutExt + ".zip"), fileNameWithoutExt + ".zip", individual.getUuid());
+                individual.setValue("remoteUrl", remoteUrl);
+            }
+
             individual.setState("processed");
 
         } catch (final Throwable ex) {
