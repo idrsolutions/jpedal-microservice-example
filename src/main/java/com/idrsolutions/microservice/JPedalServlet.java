@@ -93,7 +93,7 @@ public class JPedalServlet extends BaseServlet {
 
         final Map<String, String> conversionParams;
         try {
-            Map<String, String> settings = DBHandler.INSTANCE.getSettings(uuid);
+            final Map<String, String> settings = DBHandler.INSTANCE.getSettings(uuid);
             conversionParams = settings != null ? settings : new HashMap<>();
         } catch (final SQLException e) {
             DBHandler.INSTANCE.setError(uuid, 500, "Database failure");
