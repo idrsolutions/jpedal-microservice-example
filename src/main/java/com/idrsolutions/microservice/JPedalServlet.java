@@ -92,10 +92,10 @@ public class JPedalServlet extends BaseServlet {
 
         final Map<String, String> conversionParams;
         try {
-            final Map<String, String> settings = DBHandler.INSTANCE.getSettings(uuid);
+            final Map<String, String> settings = DBHandler.getInstance().getSettings(uuid);
             conversionParams = settings != null ? settings : new HashMap<>();
         } catch (final SQLException e) {
-            DBHandler.INSTANCE.setError(uuid, 500, "Database failure");
+            DBHandler.getInstance().setError(uuid, 500, "Database failure");
             return;
         }
 
@@ -120,7 +120,7 @@ public class JPedalServlet extends BaseServlet {
             final File userPdfFile = new File(userPdfFilePath);
             if (!userPdfFile.exists()) {
                 LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + userPdfFile.getAbsolutePath());
-                DBHandler.INSTANCE.setError(uuid, 1080, "Error processing file");
+                DBHandler.getInstance().setError(uuid, 1080, "Error processing file");
                 return;
             }
         } else {
@@ -130,7 +130,7 @@ public class JPedalServlet extends BaseServlet {
         //Makes the directory for the output file
         new File(outputDirStr + fileSeparator + fileNameWithoutExt).mkdirs();
 
-        DBHandler.INSTANCE.setState(uuid,"processing");
+        DBHandler.getInstance().setState(uuid,"processing");
 
         try {
 
@@ -148,13 +148,13 @@ public class JPedalServlet extends BaseServlet {
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
 
             final String outputPathInDocroot = uuid + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
-            DBHandler.INSTANCE.setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
+            DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
 
-            DBHandler.INSTANCE.setState(uuid, "processed");
+            DBHandler.getInstance().setState(uuid, "processed");
 
         } catch (final Throwable ex) {
             LOG.log(Level.SEVERE, "Exception thrown when converting input", ex);
-            DBHandler.INSTANCE.setError(uuid, 1220, "Exception thrown when converting input" + ex.getMessage());
+            DBHandler.getInstance().setError(uuid, 1220, "Exception thrown when converting input" + ex.getMessage());
         }
     }
 
