@@ -22,6 +22,7 @@ package com.idrsolutions.microservice;
 
 import com.idrsolutions.image.utility.SupportedFormats;
 import com.idrsolutions.microservice.db.DBHandler;
+import com.idrsolutions.microservice.storage.Storage;
 import com.idrsolutions.microservice.utils.DefaultFileServlet;
 import com.idrsolutions.microservice.utils.LibreOfficeHelper;
 import com.idrsolutions.microservice.utils.SettingsValidator;
@@ -149,6 +150,13 @@ public class JPedalServlet extends BaseServlet {
 
             final String outputPathInDocroot = uuid + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
             DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
+
+            final Storage storage = (Storage) getServletContext().getAttribute("storage");
+
+            if (storage != null) {
+                final String remoteUrl = storage.put(new File(outputDirStr + "/" + fileNameWithoutExt + ".zip"), fileNameWithoutExt + ".zip", uuid);
+                DBHandler.getInstance().setCustomValue(uuid, "remoteUrl", remoteUrl);
+            }
 
             DBHandler.getInstance().setState(uuid, "processed");
 
