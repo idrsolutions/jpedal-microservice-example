@@ -33,6 +33,8 @@ import org.jpedal.examples.images.ExtractImages;
 import org.jpedal.examples.text.ExtractStructuredText;
 import org.jpedal.examples.text.ExtractTextAsWordlist;
 import org.jpedal.examples.text.ExtractTextInRectangle;
+import org.jpedal.external.ErrorTracker;
+import org.jpedal.io.DefaultErrorTracker;
 import org.w3c.dom.Document;
 
 import javax.json.stream.JsonParsingException;
@@ -106,14 +108,12 @@ public class JPedalServlet extends BaseServlet {
         // To avoid repeated calls to getParent() and getAbsolutePath()
         final String inputDir = inputFile.getParent();
         final String outputDirStr = outputDir.getAbsolutePath();
+        final Properties properties = (Properties) getServletContext().getAttribute(BaseServletContextListener.KEY_PROPERTIES);
         
         final String userPdfFilePath;
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
-            final Properties properties = (Properties) getServletContext().getAttribute(BaseServletContextListener.KEY_PROPERTIES);
-
-
             final String libreOfficePath = properties.getProperty(BaseServletContextListener.KEY_PROPERTY_LIBRE_OFFICE);
             final long libreOfficeTimeout = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_LIBRE_OFFICE_TIMEOUT));
             LibreOfficeHelper.Result libreOfficeConversionResult = LibreOfficeHelper.convertDocToPDF(libreOfficePath, inputFile, uuid, libreOfficeTimeout);
@@ -156,7 +156,14 @@ public class JPedalServlet extends BaseServlet {
                         + Arrays.toString(Mode.values()) + '.');
             }
 
-            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams);
+            final long maxDuration = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_MAX_CONVERSION_DURATION));
+
+            convertPDF(uuid, mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams, maxDuration);
+
+            if ("1230".equals(DBHandler.getInstance().getStatus(uuid).get("errorCode"))) {
+                LOG.log(Level.SEVERE, "Conversion exceeded max duration of " + maxDuration + "ms");
+                return;
+            }
 
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
@@ -236,8 +243,10 @@ public class JPedalServlet extends BaseServlet {
         return true;
     }
 
-    private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
-                                   final String fileNameWithoutExt, final Map<String, String> paramMap) throws Exception {
+    private static void convertPDF(final String uuid, final Mode mode, final String userPdfFilePath, final String outputDirStr,
+                                   final String fileNameWithoutExt, final Map<String, String> paramMap, final long maxDuration) throws Exception {
+        ErrorTracker durationTracker = new DurationTracker(uuid, maxDuration);
+
         switch (mode) {
             case convertToImages:
                 ConvertPagesToImages.writeAllPagesAsImagesToDir(
@@ -245,7 +254,8 @@ public class JPedalServlet extends BaseServlet {
                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
                         paramMap.get("format"),
                         Float.parseFloat(paramMap.getOrDefault("scaling", "1.0")),
-                        paramMap.get("password"));
+                        paramMap.get("password"),
+                        durationTracker);
                 break;
                 case extractImages:{
                 final String type = paramMap.get("type");
@@ -255,13 +265,15 @@ public class JPedalServlet extends BaseServlet {
                                 userPdfFilePath,
                                 paramMap.get("password"),
                                 outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator ,
-                                paramMap.get("format"), true, true);
+                                paramMap.get("format"), true, true,
+                                durationTracker);
                         break;
                     case "clippedImages" :
                         ExtractClippedImages.writeAllClippedImagesToDirs(userPdfFilePath,
                                 paramMap.get("password"),
                                 outputDirStr + fileSeparator,
-                                paramMap.get("format"),new String[]{"0",fileNameWithoutExt});
+                                paramMap.get("format"),new String[]{"0",fileNameWithoutExt},
+                                durationTracker);
                         break;
                 }
                 } break;
@@ -273,14 +285,18 @@ public class JPedalServlet extends BaseServlet {
                                 userPdfFilePath,
                                 paramMap.get("password"),
                                 outputDirStr + fileSeparator,
-                                -1);
+                                -1,
+                                ExtractTextInRectangle.OUTPUT_FORMAT.TXT,
+                                false,
+                                durationTracker);
                         break;
                     case "wordlist" :
                         ExtractTextAsWordlist.writeAllWordlistsToDir(
                                 userPdfFilePath,
                                 paramMap.get("password"),
                                 outputDirStr + fileSeparator,
-                                -1);
+                                -1,
+                                durationTracker);
                         break;
                     case "structuredText" :
                         ExtractStructuredText checkForStructure = new ExtractStructuredText(userPdfFilePath);
@@ -290,7 +306,8 @@ public class JPedalServlet extends BaseServlet {
                                 ExtractStructuredText.writeAllStructuredTextOutlinesToDir(
                                         userPdfFilePath,
                                         paramMap.get("password"),
-                                        outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator);
+                                        outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
+                                        durationTracker);
                             } else {
                                 throw new JPedalServletException("File contains no structured content to extract.");
                             }
@@ -310,4 +327,29 @@ public class JPedalServlet extends BaseServlet {
             super(msg);
         }
     }
+
+    private static class DurationTracker extends DefaultErrorTracker {
+
+        private final String uuid;
+        private final long startTime;
+        private final long maxDuration;
+
+        public DurationTracker(final String uuid, final long maxDuration) {
+            this.uuid = uuid;
+            this.maxDuration = maxDuration;
+            startTime = System.currentTimeMillis();
+        }
+
+        @Override
+        public boolean checkForExitRequest(int dataPointer, int streamSize) {
+            if (System.currentTimeMillis() - startTime > maxDuration) {
+                DBHandler.getInstance().setError(uuid, 1230, "Conversion exceeded max duration of " + maxDuration + "ms");
+                return true;
+            }
+
+            return false;
+        }
+
+    }
+
 }
