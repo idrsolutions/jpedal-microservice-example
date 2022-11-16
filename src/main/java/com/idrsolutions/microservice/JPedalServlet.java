@@ -158,7 +158,7 @@ public class JPedalServlet extends BaseServlet {
 
             final long maxDuration = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_MAX_CONVERSION_DURATION));
 
-            convertPDF(uuid, mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams, maxDuration);
+            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams, new DurationTracker(uuid, maxDuration));
 
             if ("1230".equals(DBHandler.getInstance().getStatus(uuid).get("errorCode"))) {
                 LOG.log(Level.SEVERE, "Conversion exceeded max duration of " + maxDuration + "ms");
@@ -243,9 +243,8 @@ public class JPedalServlet extends BaseServlet {
         return true;
     }
 
-    private static void convertPDF(final String uuid, final Mode mode, final String userPdfFilePath, final String outputDirStr,
-                                   final String fileNameWithoutExt, final Map<String, String> paramMap, final long maxDuration) throws Exception {
-        ErrorTracker durationTracker = new DurationTracker(uuid, maxDuration);
+    private static void convertPDF(final Mode mode, final String userPdfFilePath, final String outputDirStr,
+                                   final String fileNameWithoutExt, final Map<String, String> paramMap, final ErrorTracker durationTracker) throws Exception {
 
         switch (mode) {
             case convertToImages:
