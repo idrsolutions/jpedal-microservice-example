@@ -194,7 +194,7 @@ public class JPedalServlet extends BaseServlet {
             ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
                     outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
 
-            final String outputPathInDocroot = uuid + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
+            final String outputPathInDocroot = DefaultFileServlet.encodeURI(fileNameWithoutExt);
             DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
 
             final Storage storage = (Storage) getServletContext().getAttribute("storage");
