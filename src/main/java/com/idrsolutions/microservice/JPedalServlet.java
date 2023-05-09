@@ -3,7 +3,7 @@
  *
  * Project Info: https://github.com/idrsolutions/jpedal-microservice-example
  *
- * Copyright 2022 IDRsolutions
+ * Copyright 2023 IDRsolutions
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,6 +134,7 @@ public class JPedalServlet extends BaseServlet {
                         DBHandler.getInstance().setError(uuid, 1080, "Error processing PDF");
                         return;
                     }
+                    break;
                 default:
                     LOG.log(Level.SEVERE, "Unexpected error has occurred converting office document: " + libreOfficeConversionResult.getCode() + " using LibreOffice");
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Failed to convert office document to PDF");
@@ -208,7 +209,7 @@ public class JPedalServlet extends BaseServlet {
 
         } catch (final Throwable ex) {
             LOG.log(Level.SEVERE, "Exception thrown when converting input", ex);
-            DBHandler.getInstance().setError(uuid, 1220, "Exception thrown when converting input" + ex.getMessage());
+            DBHandler.getInstance().setError(uuid, 1220, "Exception thrown when converting input: " + ex.getMessage());
         }
     }
 
