@@ -1,0 +1,7 @@
+                       JPedal Microservice Example
+                       ===========================
+
+Please visit the IDRSolutions site to access the product or trial needed for this project:
+  * https://www.idrsolutions.com/jpedal/
+
+Copyright 2020 - 2023 IDRsolutions
