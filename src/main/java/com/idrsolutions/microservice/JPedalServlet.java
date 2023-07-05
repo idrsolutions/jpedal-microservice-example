@@ -333,7 +333,8 @@ public class JPedalServlet extends BaseServlet {
                                         userPdfFilePath,
                                         paramMap.get("password"),
                                         outputDirStr + fileSeparator + fileNameWithoutExt + fileSeparator,
-                                        durationTracker);
+                                        durationTracker,
+                                        null);
                             } else {
                                 throw new JPedalServletException("File contains no structured content to extract.");
                             }
