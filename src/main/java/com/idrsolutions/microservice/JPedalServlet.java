@@ -106,7 +106,6 @@ public class JPedalServlet extends BaseServlet {
 
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
-        final String fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
         // To avoid repeated calls to getParent() and getAbsolutePath()
         final String inputDir = inputFile.getParent();
         final String outputDirStr = outputDir.getAbsolutePath();
@@ -127,7 +126,7 @@ public class JPedalServlet extends BaseServlet {
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Internal error processing file");
                     return;
                 case SUCCESS:
-                    userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
+                    userPdfFilePath = inputDir + fileSeparator + uuid + ".pdf";
                     final File inputPdf = new File(userPdfFilePath);
                     if (!inputPdf.exists()) {
                         LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + inputPdf.getAbsolutePath());
@@ -144,7 +143,7 @@ public class JPedalServlet extends BaseServlet {
         }
 
         //Makes the directory for the output file
-        new File(outputDirStr + fileSeparator + fileNameWithoutExt).mkdirs();
+        new File(outputDirStr + fileSeparator + uuid).mkdirs();
 
         final int pageCount;
         try {
@@ -183,7 +182,7 @@ public class JPedalServlet extends BaseServlet {
 
             final long maxDuration = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_MAX_CONVERSION_DURATION));
 
-            convertPDF(mode, userPdfFilePath, outputDirStr, fileNameWithoutExt, conversionParams, new ConversionTracker(uuid, maxDuration));
+            convertPDF(mode, userPdfFilePath, outputDirStr + fileSeparator + uuid, uuid, conversionParams, new ConversionTracker(uuid, maxDuration));
 
             if ("1230".equals(DBHandler.getInstance().getStatus(uuid).get("errorCode"))) {
                 final String message = String.format("Conversion %s exceeded max duration of %dms", uuid, maxDuration);
@@ -191,15 +190,15 @@ public class JPedalServlet extends BaseServlet {
                 return;
             }
 
-            ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
-                    outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
+            ZipHelper.zipFolder(outputDirStr + fileSeparator + uuid,
+                    outputDirStr + fileSeparator + uuid + ".zip");
 
             DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + uuid + ".zip");
 
             final Storage storage = (Storage) getServletContext().getAttribute("storage");
 
             if (storage != null) {
-                final String remoteUrl = storage.put(new File(outputDirStr + "/" + fileNameWithoutExt + ".zip"), fileNameWithoutExt + ".zip", uuid);
+                final String remoteUrl = storage.put(new File(outputDirStr + "/" + uuid + ".zip"), uuid + ".zip", uuid);
                 DBHandler.getInstance().setCustomValue(uuid, "remoteUrl", remoteUrl);
             }
 
