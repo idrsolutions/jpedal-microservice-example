@@ -70,7 +70,7 @@ Below are links to the documentation for each option available.
 
 Found a bug, or have a suggestion / improvement? Let us know through the Issues page.
 
-Got questions? You can contact us [here](https://idrsolutions.atlassian.net/servicedesk/customer/portal/8).
+Got questions? You can contact us [here](https://idrsolutions.my.site.com/s/request).
 
 -----
 
