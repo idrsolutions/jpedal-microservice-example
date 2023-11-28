@@ -134,7 +134,7 @@ public class JPedalServlet extends BaseServlet {
         }
 
         //Makes the directory for the output file
-        File output = new File(outputDirStr + fileSeparator + fileNameWithoutExt);
+        final File output = new File(outputDirStr + fileSeparator + fileNameWithoutExt);
         output.mkdirs();
 
         final int pageCount;
@@ -286,7 +286,7 @@ public class JPedalServlet extends BaseServlet {
 
         final int remoteTrackerPort = Integer.parseInt((String) properties.get(BaseServletContextListener.KEY_PROPERTY_REMOTE_TRACKING_PORT));
 
-        float scaling = (conversionParams.containsKey("scaling") ? Float.parseFloat(conversionParams.get("scaling")) * 1.52f : 1.52f);
+        final float scaling = (conversionParams.containsKey("scaling") ? Float.parseFloat(conversionParams.get("scaling")) * 1.52f : 1.52f);
         if (memoryLimit > 0) {
             commandArgs.add("-Xmx" + memoryLimit + "M");
         }
@@ -309,7 +309,7 @@ public class JPedalServlet extends BaseServlet {
                 commandArgs.add(String.valueOf(scaling));
                 break;
             case extractImages:
-                String type = conversionParams.get("type");
+                final String type = conversionParams.get("type");
                 switch (type) {
                     case "rawImages" :
                         commandArgs.add("org.jpedal.examples.images.ExtractImages");
@@ -330,8 +330,8 @@ public class JPedalServlet extends BaseServlet {
                 }
                 break;
             case extractText:
-                type = conversionParams.get("type");
-                switch (type) {
+                final String textType = conversionParams.get("type");
+                switch (textType) {
                     case "plainText" :
                         commandArgs.add("org.jpedal.examples.text.ExtractTextInRectangle");
                         commandArgs.add(inputPdf.getAbsolutePath());
@@ -350,11 +350,8 @@ public class JPedalServlet extends BaseServlet {
                 }
                 break;
                 default:
-                    try {
-                        throw new JPedalServletException("Unrecognised mode specified: " + mode.name());
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
+                    throw new RuntimeException("Unrecognised mode specified: " + mode.name());
+
                 }
 
 
@@ -363,9 +360,3 @@ public class JPedalServlet extends BaseServlet {
                 return ProcessUtils.runProcess(commands, inputPdf.getParentFile(), uuid, "JPedal Conversion", maxDuration);
     }
 }
-
-        class JPedalServletException extends Exception {
-            JPedalServletException(final String msg) {
-                    super(msg);
-                }
-        }
