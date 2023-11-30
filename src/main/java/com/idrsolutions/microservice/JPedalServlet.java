@@ -286,7 +286,7 @@ public class JPedalServlet extends BaseServlet {
 
         final int remoteTrackerPort = Integer.parseInt((String) properties.get(BaseServletContextListener.KEY_PROPERTY_REMOTE_TRACKING_PORT));
 
-        final float scaling = (conversionParams.containsKey("scaling") ? Float.parseFloat(conversionParams.get("scaling")) * 1.52f : 1.52f);
+        final float scaling = (conversionParams.containsKey("scaling") ? Float.parseFloat(conversionParams.remove("scaling")) * 1.52f : 1.52f);
         if (memoryLimit > 0) {
             commandArgs.add("-Xmx" + memoryLimit + "M");
         }
@@ -300,7 +300,7 @@ public class JPedalServlet extends BaseServlet {
         if (!conversionParams.isEmpty()) {
             final Set<String> keys = conversionParams.keySet();
             for (final String key : keys) {
-                if (!key.equals("type") && !key.equals("format") && !key.equals("scaling")) {
+                if (!key.equals("type") && !key.equals("format")) {
                     final String value = conversionParams.get(key);
                     commandArgs.add("-D" + key + '=' + value);
                 }
