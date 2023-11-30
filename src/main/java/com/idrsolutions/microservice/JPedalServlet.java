@@ -295,11 +295,22 @@ public class JPedalServlet extends BaseServlet {
         commandArgs.add("-Dcom.idrsolutions.remoteTracker.port=" + remoteTrackerPort);
         commandArgs.add("-Dcom.idrsolutions.remoteTracker.uuid=" + uuid);
 
+        final Mode mode = Mode.valueOf((conversionParams.remove("mode")));
+
+        if (!conversionParams.isEmpty()) {
+            final Set<String> keys = conversionParams.keySet();
+            for (final String key : keys) {
+                if (!key.equals("type") && !key.equals("format") && !key.equals("scaling")) {
+                    final String value = conversionParams.get(key);
+                    commandArgs.add("-D" + key + '=' + value);
+                }
+            }
+        }
+
         //Add jar and input / output
         commandArgs.add("-cp");
         commandArgs.add(webappDirectory);
 
-        final Mode mode = Mode.valueOf((conversionParams.remove("mode")));
         switch (mode) {
             case convertToImages:
                 commandArgs.add("org.jpedal.examples.images.ConvertPagesToImages");
