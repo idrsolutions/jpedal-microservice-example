@@ -70,11 +70,9 @@ Below are links to the documentation for each option available.
 
 Found a bug, or have a suggestion / improvement? Let us know through the Issues page.
 
-Got questions? You can contact us [here](https://idrsolutions.atlassian.net/servicedesk/customer/portal/8).
+Got questions? You can contact us [here](https://idrsolutions.my.site.com/s/request).
 
 -----
-
-Copyright 2022 IDRsolutions
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
