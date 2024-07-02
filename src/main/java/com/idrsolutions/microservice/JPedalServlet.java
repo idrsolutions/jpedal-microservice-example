@@ -21,7 +21,6 @@ package com.idrsolutions.microservice;
 import com.idrsolutions.image.utility.SupportedFormats;
 import com.idrsolutions.microservice.db.DBHandler;
 import com.idrsolutions.microservice.storage.Storage;
-import com.idrsolutions.microservice.utils.DefaultFileServlet;
 import com.idrsolutions.microservice.utils.LibreOfficeHelper;
 import com.idrsolutions.microservice.utils.ProcessUtils;
 import com.idrsolutions.microservice.utils.SettingsValidator;
@@ -36,7 +35,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,12 +79,10 @@ public class JPedalServlet extends BaseServlet {
      * 
      * @param uuid The uuid of the conversion
      * @param inputFile The input file
-     * @param outputDir The output directory of the converted file
      * @param contextUrl The context that this servlet is running in
      */
     @Override
-    protected void convert(final String uuid,
-                           final File inputFile, final File outputDir, final String contextUrl) {
+    protected void convert(final String uuid, final File inputFile, final String contextUrl) {
 
         final Map<String, String> conversionParams;
         try {
@@ -93,13 +95,11 @@ public class JPedalServlet extends BaseServlet {
 
         final String fileName = inputFile.getName();
         final String ext = fileName.substring(fileName.lastIndexOf(".") + 1);
-        final String fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf("."));
-        // To avoid repeated calls to getParent() and getAbsolutePath()
-        final String inputDir = inputFile.getParent();
-        final String outputDirStr = outputDir.getAbsolutePath();
+
         final Properties properties = (Properties) getServletContext().getAttribute(BaseServletContextListener.KEY_PROPERTIES);
-        
-        final String userPdfFilePath;
+
+        final File inputPdf;
+        final File outputDir = new File(getOutputPath(), uuid);
 
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
@@ -114,8 +114,7 @@ public class JPedalServlet extends BaseServlet {
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Internal error processing file");
                     return;
                 case SUCCESS:
-                    userPdfFilePath = inputDir + fileSeparator + fileNameWithoutExt + ".pdf";
-                    final File inputPdf = new File(userPdfFilePath);
+                    inputPdf = new File(inputFile.getParentFile(), uuid + ".pdf");
                     if (!inputPdf.exists()) {
                         LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + inputPdf.getAbsolutePath());
                         DBHandler.getInstance().setError(uuid, 1080, "Error processing PDF");
@@ -128,17 +127,20 @@ public class JPedalServlet extends BaseServlet {
                     return;
             }
         } else {
-            userPdfFilePath = inputDir + fileSeparator + fileName;
+            inputPdf = inputFile;
         }
 
         //Makes the directory for the output file
-        final File output = new File(outputDirStr + fileSeparator + fileNameWithoutExt);
-        output.mkdirs();
+        if (!outputDir.mkdirs()) {
+            LOG.log(Level.SEVERE, "Failed to create output directory: " + outputDir.getAbsolutePath());
+            DBHandler.getInstance().setError(uuid, 500, "File system failure");
+            return;
+        }
 
         final int pageCount;
         try {
             final PdfDecoderServer decoder = new PdfDecoderServer(false);
-            decoder.openPdfFile(inputFile.getAbsolutePath());
+            decoder.openPdfFile(inputPdf.getAbsolutePath());
 
             decoder.setEncryptionPassword(conversionParams.getOrDefault("org.jpedal.pdf2html.password", ""));
 
@@ -171,7 +173,7 @@ public class JPedalServlet extends BaseServlet {
 
             final long maxDuration = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_MAX_CONVERSION_DURATION));
 
-            final ProcessUtils.Result result = convertFile(conversionParams, uuid, webappDirectory, inputFile, output, maxDuration);
+            final ProcessUtils.Result result = convertFile(conversionParams, uuid, webappDirectory, inputPdf, outputDir, maxDuration);
 
             if ("1230".equals(DBHandler.getInstance().getStatus(uuid).get("errorCode"))) {
                 final String message = String.format("Conversion %s exceeded max duration of %dms", uuid, maxDuration);
@@ -181,16 +183,15 @@ public class JPedalServlet extends BaseServlet {
 
             switch (result) {
                 case SUCCESS:
-                    ZipHelper.zipFolder(outputDirStr + fileSeparator + fileNameWithoutExt,
-                            outputDirStr + fileSeparator + fileNameWithoutExt + ".zip");
+                    final File outputZip = new File(outputDir.getParentFile(), uuid + ".zip");
+                    ZipHelper.zipFolder(outputDir, outputZip, false);
 
-                    final String outputPathInDocroot = uuid + '/' + DefaultFileServlet.encodeURI(fileNameWithoutExt);
-                    DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + outputPathInDocroot + ".zip");
+                    DBHandler.getInstance().setCustomValue(uuid, "downloadUrl", contextUrl + "/output/" + uuid + ".zip");
 
                     final Storage storage = (Storage) getServletContext().getAttribute("storage");
 
                     if (storage != null) {
-                        final String remoteUrl = storage.put(new File(outputDirStr + "/" + fileNameWithoutExt + ".zip"), fileNameWithoutExt + ".zip", uuid);
+                    final String remoteUrl = storage.put(outputZip, uuid + ".zip", uuid);
                         DBHandler.getInstance().setCustomValue(uuid, "remoteUrl", remoteUrl);
                     }
 
