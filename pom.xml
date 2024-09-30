@@ -6,8 +6,12 @@
     <groupId>com.idrsolutions</groupId>
     <artifactId>jpedal-microservice-example</artifactId>
     <packaging>war</packaging>
-    <version>9.0.0</version>
+    <version>10.0.0</version>
     <name>JPedal Microservice Example</name>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -19,7 +23,7 @@
         <dependency>
             <groupId>com.idrsolutions</groupId>
             <artifactId>base-microservice-example</artifactId>
-            <version>13.0.0</version>
+            <version>14.0.0</version>
         </dependency>
         <dependency>
             <groupId>jpedal</groupId>
@@ -44,11 +48,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.4</version>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
+                <version>3.13.0</version>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
