@@ -69,7 +69,6 @@ public class JPedalServletContextListener extends BaseServletContextListener {
 
     /**
      * Initializes the servlet context when the application starts.
-     * Initializes the servlet context when the application starts.
      *
      * @param servletContextEvent the event containing the servlet context that is being initialized
      */
