@@ -34,6 +34,7 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.nio.file.FileSystems;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,7 +67,7 @@ public class JPedalServlet extends BaseServlet {
     }
 
     private static final Logger LOG = Logger.getLogger(JPedalServlet.class.getName());
-    private static final String fileSeparator = System.getProperty("file.separator");
+    private static final String SEPARATOR = FileSystems.getDefault().getSeparator();
 
     /**
      * Converts given pdf file or office document to images using JPedal.
@@ -101,11 +102,20 @@ public class JPedalServlet extends BaseServlet {
         final File inputPdf;
         final File outputDir = new File(getOutputPath(), uuid);
 
+        //Makes the directory for the output file
+        if (!outputDir.mkdirs()) {
+            LOG.log(Level.SEVERE, "Failed to create output directory: {0}", outputDir.getAbsolutePath());
+            DBHandler.getInstance().setError(uuid, 500, "File system failure");
+            return;
+        }
+
         final boolean isPDF = ext.toLowerCase().endsWith("pdf");
         if (!isPDF) {
+            final boolean includeOfficePdf = "true".equalsIgnoreCase(properties.getProperty(JPedalServletContextListener.KEY_PROPERTY_INCLUDE_OFFICE_PDF));
+            final File officeOutputDir = includeOfficePdf ? outputDir : inputFile.getParentFile();
             final String libreOfficePath = properties.getProperty(BaseServletContextListener.KEY_PROPERTY_LIBRE_OFFICE);
             final long libreOfficeTimeout = Long.parseLong(properties.getProperty(BaseServletContextListener.KEY_PROPERTY_LIBRE_OFFICE_TIMEOUT));
-            final ProcessUtils.Result libreOfficeConversionResult = LibreOfficeHelper.convertDocToPDF(libreOfficePath, inputFile, uuid, libreOfficeTimeout);
+            final ProcessUtils.Result libreOfficeConversionResult = LibreOfficeHelper.convertDocToPDF(libreOfficePath, inputFile, uuid, libreOfficeTimeout, officeOutputDir);
             switch (libreOfficeConversionResult) {
                 case TIMEOUT:
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Maximum conversion duration exceeded.");
@@ -114,27 +124,20 @@ public class JPedalServlet extends BaseServlet {
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Internal error processing file");
                     return;
                 case SUCCESS:
-                    inputPdf = new File(inputFile.getParentFile(), uuid + ".pdf");
+                    inputPdf = new File(officeOutputDir, uuid + ".pdf");
                     if (!inputPdf.exists()) {
-                        LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: " + inputPdf.getAbsolutePath());
+                        LOG.log(Level.SEVERE, "LibreOffice error found while converting to PDF: {0}", inputPdf.getAbsolutePath());
                         DBHandler.getInstance().setError(uuid, 1080, "Error processing PDF");
                         return;
                     }
                     break;
                 default:
-                    LOG.log(Level.SEVERE, "Unexpected error has occurred converting office document: " + libreOfficeConversionResult.getCode() + " using LibreOffice");
+                    LOG.log(Level.SEVERE, "Unexpected error has occurred converting office document: {0}", libreOfficeConversionResult.getCode() + " using LibreOffice");
                     DBHandler.getInstance().setError(uuid, libreOfficeConversionResult.getCode(), "Failed to convert office document to PDF");
                     return;
             }
         } else {
             inputPdf = inputFile;
-        }
-
-        //Makes the directory for the output file
-        if (!outputDir.mkdirs()) {
-            LOG.log(Level.SEVERE, "Failed to create output directory: " + outputDir.getAbsolutePath());
-            DBHandler.getInstance().setError(uuid, 500, "File system failure");
-            return;
         }
 
         final int pageCount;
@@ -241,7 +244,7 @@ public class JPedalServlet extends BaseServlet {
         final SettingsValidator settingsValidator = new SettingsValidator(settings);
 
         final String mode = settingsValidator.validateString("mode", validModes, true);
-        if (mode != null && Arrays.stream(validModes).anyMatch(s -> s.equals(mode))) {
+        if (mode != null && Arrays.asList(validModes).contains(mode)) {
             switch (Mode.valueOf(mode)) {
                 case convertToImages:
                     settingsValidator.validateString("format", validEncoderFormats, true);
@@ -345,7 +348,7 @@ public class JPedalServlet extends BaseServlet {
                     case "plainText" :
                         commandArgs.add("org.jpedal.examples.text.ExtractTextInRectangle");
                         commandArgs.add(inputPdf.getAbsolutePath());
-                        commandArgs.add(outputDir.getAbsolutePath() + fileSeparator);
+                        commandArgs.add(outputDir.getAbsolutePath() + SEPARATOR);
                         break;
                     case "wordlist" :
                         commandArgs.add("org.jpedal.examples.text.ExtractTextAsWordlist");
