@@ -26,11 +26,28 @@ import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * This servlet context listener is responsible for initializing the JPedal microservice.
+ * It sets up the base path for the output files and validates the configuration file values.
+ */
 @WebListener
 public class JPedalServletContextListener extends BaseServletContextListener {
 
+    /**
+     * The configuration property key used to specify whether to include the generated PDF in the output when processing office documents.
+     */
+    public static final String KEY_PROPERTY_INCLUDE_OFFICE_PDF = "includeOfficePdf";
+
+    /**
+     * Logger instance used for logging messages within this class.
+     */
     private static final Logger LOG = Logger.getLogger(JPedalServletContextListener.class.getName());
 
+    /**
+     * Retrieves the configuration path used by the application, which is "~/.idr/jpedal-microservice/".
+     *
+     * @return the configuration path as a String.
+     */
     @Override
     public String getConfigPath() {
         String userDir = System.getProperty("user.home");
@@ -40,11 +57,21 @@ public class JPedalServletContextListener extends BaseServletContextListener {
         return userDir + "/.idr/jpedal-microservice/";
     }
 
+    /**
+     * Retrieves the name of the configuration file used by the application.
+     *
+     * @return the name of the configuration file, which is "jpedal-microservice.properties"
+     */
     @Override
     public String getConfigName(){
         return "jpedal-microservice.properties";
     }
 
+    /**
+     * Initializes the servlet context when the application starts.
+     *
+     * @param servletContextEvent the event containing the servlet context that is being initialized
+     */
     @Override
     public void contextInitialized(final ServletContextEvent servletContextEvent) {
         super.contextInitialized(servletContextEvent);
@@ -58,14 +85,29 @@ public class JPedalServletContextListener extends BaseServletContextListener {
         }
     }
 
+    /**
+     * Validates the configuration values provided in the Properties object by invoking specific validation methods for
+     * individual properties. Ensures that the required configuration properties have appropriate values and applies
+     * default values or logs warnings if necessary.
+     *
+     * @param propertiesFile the Properties object containing the configuration values to be validated
+     */
     @Override
     protected void validateConfigFileValues(final Properties propertiesFile) {
         super.validateConfigFileValues(propertiesFile);
 
         validateLibreOfficePath(propertiesFile);
         validateLibreOfficeTimeout(propertiesFile);
+        validateLibreOfficePdf(propertiesFile);
     }
 
+    /**
+     * Validates the "libreOfficePath" property in the provided Properties object.
+     * If the property is not set or contains an empty value, it assigns a default value of "soffice" and logs a
+     * warning.
+     *
+     * @param properties the Properties object containing configuration properties to be validated
+     */
     private static void validateLibreOfficePath(final Properties properties) {
         final String libreOfficePath = properties.getProperty(KEY_PROPERTY_LIBRE_OFFICE);
         if (libreOfficePath == null || libreOfficePath.isEmpty()) {
@@ -74,6 +116,13 @@ public class JPedalServletContextListener extends BaseServletContextListener {
         }
     }
 
+    /**
+     * Validates the "libreOfficeTimeout" property in the provided Properties object.
+     * If the property is not set, is empty, or contains an invalid value (non-numeric),
+     * it assigns a default value of "60000" and logs a warning.
+     *
+     * @param properties the Properties object containing configuration properties to be validated
+     */
     private static void validateLibreOfficeTimeout(final Properties properties) {
         final String libreOfficeTimeout = properties.getProperty(KEY_PROPERTY_LIBRE_OFFICE_TIMEOUT);
         if (libreOfficeTimeout == null || libreOfficeTimeout.isEmpty() || !libreOfficeTimeout.matches("\\d+")) {
@@ -81,4 +130,23 @@ public class JPedalServletContextListener extends BaseServletContextListener {
             LOG.log(Level.WARNING, "Properties value for \"libreOfficeTimeout\" was not set. Using a value of \"60000\"");
         }
     }
+
+    /**
+     * Validates the "includeOfficePdf" property in the provided Properties object.
+     * If the property is not set or is invalid, it assigns a default value of "false" and logs a warning.
+     *
+     * @param properties the Properties object containing configuration properties to be validated
+     */
+    private static void validateLibreOfficePdf(final Properties properties) {
+        final String includeOfficePdf = properties.getProperty(KEY_PROPERTY_INCLUDE_OFFICE_PDF);
+        if (includeOfficePdf == null || includeOfficePdf.isEmpty() || !Boolean.parseBoolean(includeOfficePdf)) {
+            properties.setProperty(KEY_PROPERTY_INCLUDE_OFFICE_PDF, "false");
+            if (!"false".equalsIgnoreCase(includeOfficePdf)) {
+                final String message = String.format("Properties value for \"includeOfficePdf\" was set to \"%s\" " +
+                        "but should be a boolean. Using a value of false.", includeOfficePdf);
+                LOG.log(Level.WARNING, message);
+            }
+        }
+    }
+
 }
