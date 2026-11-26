@@ -28,7 +28,7 @@ https://github.com/idrsolutions/
 Clone a copy of the jpedal-microservice-example git repo:
 
 ```
-git clone git://github.com/idrsolutions/jpedal-microservice-example
+git clone git@github.com:idrsolutions/jpedal-microservice-example.git
 ```
 
 Add the JPedal jar to the project by copying it into the /lib directory. Make sure that it is named "jpedal.jar"
@@ -42,9 +42,9 @@ This will generate the jpedal.war file inside the /target directory.
 
 ### Deployment: ###
 
-See our [application server tutorials](https://docs.idrsolutions.com/jpedal/app-server-deployment/) for instructions on deployment.
+See our [application server tutorials](https://www.idrsolutions.com/docs/jpedal/deploy-to-java-application-server/) for instructions on deployment.
 
-See our [cloud platform tutorials](https://docs.idrsolutions.com/jpedal/docker-deployment/) for instructions on cloud deployment.
+See our [cloud platform tutorials](https://www.idrsolutions.com/docs/jpedal/host-docker-web-service/) for instructions on cloud deployment.
 
 ### docker-compose deployment: ###
 
@@ -60,9 +60,9 @@ A complete list of raw requests that can be used can be found [here](/API.md).
 The JPedal Microservice Example can perform several different conversion or extraction options.
 Below are links to the documentation for each option available.
 
- - [Convert PDF pages to Images](https://docs.idrsolutions.com/jpedal/convert-pdf-to-image/) will convert each page into an image.
- - [Extract Images from PDF pages](https://docs.idrsolutions.com/jpedal/extract-images-from-pdf/) will extract each image found on a page.
- - [Extract Text from PDF pages](https://docs.idrsolutions.com/jpedal/extract-text-from-pdf/) will extract all the text from each page.
+ - [Convert PDF pages to Images](https://www.idrsolutions.com/docs/jpedal/tutorials/convert-images/) will convert each page into an image.
+ - [Extract Images from PDF pages](https://www.idrsolutions.com/docs/jpedal/image-extraction/) will extract each image found on a page.
+ - [Extract Text from PDF pages](https://www.idrsolutions.com/docs/jpedal/text/) will extract all the text from each page.
 
 -----
 
